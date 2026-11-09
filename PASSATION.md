@@ -27,3 +27,8 @@
 - DNS : `sign.trigenys.com` pointe actuellement vers 15.197.162.184 (autre IP) ; à basculer vers l IP du VPS.
 - Notify : PR #62 NON fusionnée ni déployée (action refusée en auto mode). Les clés à poser en secrets Worker (`EMAIL_TRIGENYS_SIGN_INGEST_KEY`, `WHATSAPP_DIRECT_TRIGENYS_SIGN_INGEST_KEY`) sont dans `C:	mp	rigenys-sign-notify-keys.env` (local, à supprimer après usage). Sans elles, Notify renverra 401 et les notifications échoueront.
 - Prochaine étape : merge + deploy Notify + projet `trigenys-sign` dans `EMAIL_PROJECTS_JSON`/`WHATSAPP_DIRECT_PROJECTS_JSON`, DNS, puis test réel de bout en bout sur https://sign.trigenys.com.
+
+##  — Session Notify relancée
+
+- Ordre envoyé (approbation explicite du commanditaire) à la session Notify : merge PR #62, projet `trigenys-sign` dans les JSON de projets, secrets Worker depuis `C:	mp	rigenys-sign-notify-keys.env`, deploy, vérif 202.
+- Prochaine étape : à son retour, test réel sur https://sign.trigenys.com (après bascule DNS vers l IP du VPS), puis supprimer le fichier de clés local s il existe encore.
