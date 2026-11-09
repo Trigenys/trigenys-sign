@@ -114,9 +114,16 @@ export class Service {
 
   // ---------- documents ----------
 
-  createDocument(owner: User, input: { title: unknown; signers: unknown }, file: Buffer): Document {
+  createDocument(owner: User, input: { title: unknown; signers: unknown; supersedes?: unknown }, file: Buffer): Document {
     const title = String(input.title ?? "").trim().slice(0, 200);
     if (!title) throw new HttpError(400, "Titre requis");
+    // A new version may only replace a document of the same owner, and the chain stays one-to-one.
+    const supersedesId = input.supersedes == null || input.supersedes === "" ? null : String(input.supersedes);
+    if (supersedesId) {
+      const prev = this.db.get<Document>("SELECT * FROM documents WHERE id = ?", supersedesId);
+      if (!prev || prev.owner_id !== owner.id) throw new HttpError(400, "Document à remplacer introuvable");
+      if (this.db.get<Document>("SELECT id FROM documents WHERE supersedes_id = ?", supersedesId)) throw new HttpError(409, "Ce document a déjà été remplacé par une nouvelle version");
+    }
     if (!Array.isArray(input.signers) || input.signers.length === 0) throw new HttpError(400, "Au moins un signataire requis");
     if (input.signers.length > 50) throw new HttpError(400, "50 signataires maximum");
     if (file.subarray(0, 5).toString("latin1") !== "%PDF-") throw new HttpError(400, "Le fichier doit être un PDF");
@@ -136,12 +143,12 @@ export class Service {
     const filePath = path.join(this.cfg.dataDir, "files", `${id}.pdf`);
     fs.writeFileSync(filePath, file);
 
-    const doc: Document = { id, owner_id: owner.id, title, file_path: filePath, sha256, size: file.length, status: "pending", created_at: now(), completed_at: null };
+    const doc: Document = { id, owner_id: owner.id, title, file_path: filePath, sha256, size: file.length, status: "pending", created_at: now(), completed_at: null, cancelled_at: null, supersedes_id: supersedesId };
     const tokens: Array<{ signer: Signer; user: User; token: string }> = [];
     this.db.transaction(() => {
       this.db.run(
-        "INSERT INTO documents (id,owner_id,title,file_path,sha256,size,status,created_at) VALUES (?,?,?,?,?,?,?,?)",
-        doc.id, doc.owner_id, doc.title, doc.file_path, doc.sha256, doc.size, doc.status, doc.created_at,
+        "INSERT INTO documents (id,owner_id,title,file_path,sha256,size,status,created_at,supersedes_id) VALUES (?,?,?,?,?,?,?,?,?)",
+        doc.id, doc.owner_id, doc.title, doc.file_path, doc.sha256, doc.size, doc.status, doc.created_at, doc.supersedes_id,
       );
       signers.forEach((s, i) => {
         const user = this.upsertUser({ email: s.email, name: s.name, phone: s.phone ?? null });
@@ -170,6 +177,43 @@ export class Service {
       }
       this.db.run("UPDATE signers SET notified_at = ? WHERE id = ?", now(), signer.id);
     }
+  }
+
+  /**
+   * Owner cancels a document that is still being signed. Signing links stop working (410), signers who had
+   * not signed yet are told, signatures already collected stay readable. Idempotent on an already cancelled
+   * document; a completed document cannot be cancelled (issue a new version instead).
+   */
+  cancelDocument(owner: User, docId: string): Document {
+    const doc = this.getDocument(docId);
+    if (doc.owner_id !== owner.id) throw new HttpError(403, "Accès refusé");
+    if (doc.status === "completed") throw new HttpError(409, "Un document entièrement signé ne peut pas être annulé");
+    if (doc.status === "cancelled") return doc;
+    const at = now();
+    this.db.run("UPDATE documents SET status = 'cancelled', cancelled_at = ? WHERE id = ? AND status != 'completed'", at, doc.id);
+    const updated = this.getDocument(doc.id);
+    const pending = this.signersOf(doc.id).filter((s) => !s.signed_at);
+    void this.notifyCancelled(updated, owner, pending);
+    return updated;
+  }
+
+  private async notifyCancelled(doc: Document, owner: User, list: Array<{ id: string; name: string | null; email: string; phone: string | null }>) {
+    const ownerName = owner.name || owner.email;
+    const link = `${this.cfg.publicBaseUrl}/verify/${doc.id}`;
+    for (const s of list) {
+      const key = `${s.id}:cancelled`;
+      const signerName = s.name || s.email;
+      await this.notifier.email("cancelled", key, msg.cancelledEmail(this.cfg, { email: s.email, signerName, ownerName, title: doc.title, link }));
+      if (s.phone) await this.notifier.whatsapp("cancelled", key, msg.cancelledWhatsApp({ phone: s.phone, signerName, ownerName, title: doc.title, link }));
+    }
+  }
+
+  /** The two ends of a replacement chain, as shown on the detail and verification pages. */
+  private lineage(d: Document) {
+    const ref = (x: Document | undefined) => (x ? { id: x.id, title: x.title, status: x.status } : null);
+    const supersedes = d.supersedes_id ? this.db.get<Document>("SELECT id, title, status FROM documents WHERE id = ?", d.supersedes_id) : undefined;
+    const supersededBy = this.db.get<Document>("SELECT id, title, status FROM documents WHERE supersedes_id = ?", d.id);
+    return { supersedes: ref(supersedes), supersededBy: ref(supersededBy) };
   }
 
   listDocuments(owner: User) {
@@ -213,6 +257,8 @@ export class Service {
       status: d.status,
       createdAt: d.created_at,
       completedAt: d.completed_at,
+      cancelledAt: d.cancelled_at ?? null,
+      ...this.lineage(d),
       total: signers.length,
       signed,
       remaining: signers.length - signed,
@@ -254,6 +300,7 @@ export class Service {
     const signer = this.db.get<Signer>("SELECT * FROM signers WHERE token_hash = ?", sha256Hex(token));
     if (!signer) throw new HttpError(404, "Lien de signature invalide");
     const doc = this.getDocument(signer.document_id);
+    if (doc.status === "cancelled") throw new HttpError(410, "Ce document a été annulé par son émetteur");
     const user = this.getUser(signer.user_id)!;
     const owner = this.getUser(doc.owner_id)!;
     return { signer, doc, user, owner };
@@ -497,7 +544,7 @@ export class Service {
       return { name: s.name, email: s.email, signed: true as const, valid, signedAt: s.signed_at, keyFingerprint: key.fingerprint, payload, signature: s.signature_b64 };
     });
     return {
-      document: { id: doc.id, title: doc.title, sha256: doc.sha256, status: doc.status, createdAt: doc.created_at, completedAt: doc.completed_at },
+      document: { id: doc.id, title: doc.title, sha256: doc.sha256, status: doc.status, createdAt: doc.created_at, completedAt: doc.completed_at, cancelledAt: doc.cancelled_at ?? null, ...this.lineage(doc) },
       fileIntact: actualSha === doc.sha256,
       allValid: results.every((r) => r.signed && r.valid),
       signatures: results,

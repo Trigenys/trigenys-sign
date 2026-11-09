@@ -71,16 +71,17 @@ export function createServer(cfg: Config, svc: Service): http.Server {
     const owner = requireUser(ctx);
     const meta = ctx.req.headers["x-document-meta"];
     if (typeof meta !== "string") throw new HttpError(400, "En-tête X-Document-Meta manquant");
-    let parsed: { title?: unknown; signers?: unknown };
+    let parsed: { title?: unknown; signers?: unknown; supersedes?: unknown };
     try {
       parsed = JSON.parse(Buffer.from(meta, "base64").toString("utf8"));
     } catch {
       throw new HttpError(400, "X-Document-Meta illisible");
     }
     const file = await readBody(ctx.req);
-    const doc = svc.createDocument(owner, { title: parsed.title, signers: parsed.signers }, file);
+    const doc = svc.createDocument(owner, { title: parsed.title, signers: parsed.signers, supersedes: parsed.supersedes }, file);
     sendJson(ctx.res, 201, svc.documentView(doc));
   });
+  router.add("POST", "/api/documents/:id/cancel", (ctx) => sendJson(ctx.res, 200, svc.documentView(svc.cancelDocument(requireUser(ctx), ctx.params.id!))));
   router.add("GET", "/api/documents/:id", (ctx) => {
     const owner = requireUser(ctx);
     const doc = svc.getDocument(ctx.params.id!);

@@ -76,3 +76,26 @@ export function progressWhatsApp(p: { phone: string; signerName: string; title: 
     linkLabel: done ? "Télécharger" : "Voir l'avancement",
   };
 }
+
+export function cancelledEmail(cfg: Config, p: { email: string; signerName: string; ownerName: string; title: string; link: string | null }): EmailMessage {
+  return {
+    recipient: p.email,
+    subject: `Document annulé : ${p.title}`,
+    html: layout(
+      cfg,
+      "Ce document a été annulé",
+      `<p>Bonjour ${esc(p.signerName)},</p><p>${esc(p.ownerName)} a annulé le document <strong>« ${esc(p.title)} »</strong>. Le lien de signature que vous avez reçu ne fonctionne plus.${p.link ? " Une nouvelle version vous sera envoyée séparément si nécessaire." : ""}</p>`,
+      p.link ? { href: p.link, label: "Voir la page de vérification" } : undefined,
+    ),
+    text: `${p.ownerName} a annulé le document « ${p.title} ». Le lien de signature reçu ne fonctionne plus.${p.link ? ` ${p.link}` : ""}`,
+  };
+}
+
+export function cancelledWhatsApp(p: { phone: string; signerName: string; ownerName: string; title: string; link: string | null }): WhatsAppMessage {
+  return {
+    recipient: p.phone,
+    text: `🚫 ${p.ownerName} a annulé le document « ${p.title} ». Le lien de signature reçu ne fonctionne plus.`,
+    link: p.link ?? undefined,
+    linkLabel: p.link ? "Vérification" : undefined,
+  };
+}

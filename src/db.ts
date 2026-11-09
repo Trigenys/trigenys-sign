@@ -28,9 +28,13 @@ export interface Document {
   file_path: string;
   sha256: string;
   size: number;
-  status: "draft" | "pending" | "completed";
+  status: "draft" | "pending" | "completed" | "cancelled";
   created_at: string;
   completed_at: string | null;
+  /** Set when the owner cancelled the document before completion; existing signatures are kept read-only. */
+  cancelled_at?: string | null;
+  /** Id of the document this one replaces (new version issued after a cancellation or an amendment). */
+  supersedes_id?: string | null;
 }
 
 export interface Handoff {
@@ -198,6 +202,8 @@ export class Db {
       if (!cols.some((c) => c.name === column)) this.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
     };
     add("signers", "field_json", "TEXT");
+    add("documents", "cancelled_at", "TEXT");
+    add("documents", "supersedes_id", "TEXT");
   }
 
   transaction<T>(fn: () => T): T {

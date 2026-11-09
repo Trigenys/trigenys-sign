@@ -82,6 +82,7 @@
   <section id="create" class="hidden">
     <div class="card accent" style="max-width:820px;margin:0 auto">
       <div class="row space"><h1 style="margin:0">Nouveau document</h1><button id="create-cancel" class="ghost">Annuler</button></div>
+      <p id="c-supersedes" class="draft-note hidden"></p>
       <p id="draft-note" class="draft-note hidden">Brouillon enregistré dans ce navigateur à <span id="draft-time"></span>. <button type="button" id="draft-clear" class="linkish">Vider le brouillon</button></p>
       <form id="create-form">
         <label for="c-title">Titre</label>
@@ -132,6 +133,8 @@
     <div class="row space">
       <button id="detail-back" class="ghost">Retour</button>
       <div class="row">
+        <button type="button" id="detail-cancel" class="ghost danger hidden">Annuler ce document</button>
+        <button type="button" id="detail-newversion" class="ghost hidden">Nouvelle version</button>
         <a id="detail-original" class="btn ghost" target="_blank" rel="noopener">Original</a>
         <a id="detail-signed" class="btn ghost" target="_blank" rel="noopener">PDF signé</a>
         <a id="detail-verify" class="btn primary" target="_blank" rel="noopener">Vérifier</a>
@@ -141,6 +144,7 @@
       <div class="card">
         <h1 id="d-title"></h1>
         <p class="muted" style="margin:0">Empreinte SHA-256 : <code id="d-sha"></code></p>
+        <p id="d-lineage" class="lineage hidden"></p>
         <div class="progress"><span id="d-bar" style="width:0%"></span></div>
         <div class="row space mt">
           <div class="counter"><span id="d-signed">0</span>/<span id="d-total">0</span><small>signatures recueillies</small></div>

@@ -355,4 +355,4 @@ setupSheet();
 tuneForDevice();
 registerServiceWorker();
 bootBrand();
-load().catch((err) => notice($("error"), "err", esc(err.message)));
+load().catch((err) => notice($("error"), err.status === 410 ? "warn" : "err", err.status === 410 ? `${esc(err.message)}. Ce lien ne permet plus de signer ; si une nouvelle version est émise, vous recevrez un nouveau lien.` : esc(err.message)));

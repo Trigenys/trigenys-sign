@@ -58,14 +58,20 @@ try {
   $("pdf").href = `/api/documents/${r.document.id}/signed.pdf`;
   const g = $("global");
   const signed = r.signatures.filter((s) => s.signed).length;
+  const lineage = [];
+  if (r.document.supersedes) lineage.push(`Remplace <a href="/verify/${encodeURIComponent(r.document.supersedes.id)}">« ${esc(r.document.supersedes.title)} »</a>`);
+  if (r.document.supersededBy) lineage.push(`Remplacé par <a href="/verify/${encodeURIComponent(r.document.supersededBy.id)}">« ${esc(r.document.supersededBy.title)} »</a>`);
+  if (lineage.length) { const p = document.createElement("p"); p.className = "lineage"; p.innerHTML = lineage.join(" · "); $("sha").closest("p").after(p); }
   if (!r.fileIntact) { g.className = "pill err"; g.textContent = "Fichier altéré"; }
+  else if (r.document.status === "cancelled") { g.className = "pill cancelled"; g.textContent = `Annulé par l'émetteur le ${fmtDate(r.document.cancelledAt)}`; }
   else if (r.allValid && r.document.status === "completed") { g.className = "pill ok"; g.textContent = "Toutes les signatures valides"; }
   else if (r.signatures.some((s) => s.signed && !s.valid)) { g.className = "pill err"; g.textContent = "Signature invalide détectée"; }
   else { g.className = "pill pending"; g.textContent = `${signed}/${r.signatures.length} signé${signed > 1 ? "s" : ""}`; }
-  notice($("intact"), r.fileIntact ? "ok" : "err", r.fileIntact ? "Le fichier conservé correspond à l'empreinte scellée." : "Le fichier conservé ne correspond plus à l'empreinte : les signatures ne sont plus opposables.");
+  if (r.document.status === "cancelled") notice($("intact"), "warn", `Ce document a été annulé par son émetteur${r.document.supersededBy ? " et remplacé par une nouvelle version" : ""} : il ne peut plus être signé et n'engage pas les parties.${r.signatures.some((s) => s.signed) ? " Les signatures déjà apposées restent consultables ci-dessous." : ""}`);
+  else notice($("intact"), r.fileIntact ? "ok" : "err", r.fileIntact ? "Le fichier conservé correspond à l'empreinte scellée." : "Le fichier conservé ne correspond plus à l'empreinte : les signatures ne sont plus opposables.");
   $("list").innerHTML = r.signatures.map((s) => `<li>
     <div><div class="name">${esc(s.name || s.email)}</div><div class="mail">${esc(s.email)}${s.keyFingerprint ? ` · clé ${esc(s.keyFingerprint.slice(0, 16))}…` : ""}</div></div>
-    ${!s.signed ? '<span class="pill neutral">En attente</span>' : s.valid ? `<span class="pill ok">Valide · ${fmtDate(s.signedAt)}</span>` : '<span class="pill err">Invalide</span>'}
+    ${!s.signed ? `<span class="pill neutral">${r.document.status === "cancelled" ? "Non signé" : "En attente"}</span>` : s.valid ? `<span class="pill ok">Valide · ${fmtDate(s.signedAt)}</span>` : '<span class="pill err">Invalide</span>'}
   </li>`).join("");
   const anchors = (r.anchors || []).filter((a) => a.status !== "failed");
   $("anchors-box").classList.toggle("hidden", anchors.length === 0);

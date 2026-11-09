@@ -189,3 +189,17 @@
 - `67a5639` : manifest généré depuis la marque (`webManifest` dans `src/server.ts`), `web/sw.js` (cache des seuls `/static/*`, `VERSION` à incrémenter pour pousser le shell), `web/pwa.js` (enregistrement SW + bannière d'installation sur le tableau de bord, invite native ou pas-à-pas iPhone, « Plus tard » = 30 jours), icônes `web/assets/icons/`, méta PWA sur les 4 pages. Tests `test/pwa.test.ts` (27/27 verts), Playwright local OK (SW actif, bannière, cache, iOS).
 - Déployé sur le VPS : conteneur recréé, manifest/sw/icône en 200 sur sign.trigenys.com. RAM avant build : 1,3 Go libres.
 - Reste : test réel utilisateur (installation sur téléphone + signature du contrat Tiffany Aka'a pour déclencher le premier ancrage).
+
+## 2026-11-09 17:13 — Démarrage : annulation et nouvelle version d'un document
+
+- Accord utilisateur sur le plan : statut `cancelled` (liens de signature → 410, notification des signataires, signatures existantes conservées), « Nouvelle version » (pré-remplissage titre + signataires, `supersedes_id`), mention « remplacé par / remplace » sur fiche et `/verify`. Migration additive uniquement.
+- Prod avant ce lot : `67a5639` (PWA) déployé, sain.
+
+## 2026-11-09 17:24 — Annulation et nouvelle version : implémenté, testé, en déploiement
+
+- Schéma (additif, `src/db.ts`) : `documents.cancelled_at`, `documents.supersedes_id` ; statut `cancelled`.
+- Service : `cancelDocument` (403 non-propriétaire, 409 si complet, idempotent, notifie e-mail/WhatsApp les seuls signataires non signés avec lien `/verify`), `createDocument` accepte `supersedes` (même émetteur, un seul successeur → 409 sinon), `resolveSignerToken` lève 410 « Ce document a été annulé par son émetteur » (couvre contexte, statut, clé, relais, signature). `documentView`/`verify` exposent `cancelledAt`, `supersedes`, `supersededBy`.
+- API : `POST /api/documents/:id/cancel` ; `X-Document-Meta.supersedes`.
+- UI : fiche → « Annuler ce document » (pending), « Nouvelle version » (pré-remplit titre + signataires, note « Nouvelle version de … », annule d'abord si encore pending), pastille « Annulé », lignée « Remplace / Remplacé par » ; liste → pastille « Annulé » ; `/verify` → pastille « Annulé par l'émetteur le … », avertissement, « Non signé », lignée ; page de signature → avertissement 410. `web/sw.js` VERSION v2.
+- Tests : `test/cancel.test.ts` (4 tests, service + HTTP) ; suite complète 31/31. Playwright local : annulation, nouvelle version, lignée, liste, verify, lien 410 — tout vert (captures dans le scratchpad de session).
+- Suite : déploiement VPS (script `deploy-cancel.ps1` : push, pull, free -m, compose up --build, curls, PRAGMA colonnes).

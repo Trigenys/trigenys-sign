@@ -243,6 +243,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .pill.pending { background: #FBE3E8; color: var(--orange); }
 .pill.err { background: #FBE4E2; color: var(--err); }
 .pill.neutral { background: #ECE7E9; color: var(--muted); }
+.pill.cancelled { background: #ECE7E9; color: #5A4E52; }
+button.danger { color: var(--err); border-color: var(--err); }
+button.danger:hover { background: #FDF4F4; }
+.lineage { margin: 8px 0 0; font-size: 0.9rem; color: var(--muted); }
+.lineage a { color: inherit; text-decoration: underline; }
 
 .signers { list-style: none; padding: 0; margin: 10px 0 0; border-top: 1px solid var(--line-strong); }
 .signers li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }

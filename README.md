@@ -116,6 +116,18 @@ L'application s'installe sur l'écran d'accueil d'un téléphone ou en fenêtre 
 
 Pour forcer la mise à jour du shell chez les utilisateurs après un changement de `web/`, incrémenter `VERSION` dans `web/sw.js`.
 
+## Annulation et nouvelle version
+
+Un document en cours peut être **annulé** par son émetteur (bouton « Annuler ce document » sur la fiche) : il passe au
+statut `cancelled`, tous ses liens de signature répondent **410** « Ce document a été annulé par son émetteur », les
+signataires qui n'avaient pas encore signé sont prévenus (e-mail, WhatsApp) et les signatures déjà apposées restent
+consultables mais le document n'engage pas les parties. Un document complet ne s'annule pas.
+
+Pour un avenant ou une correction, « **Nouvelle version** » pré-remplit le formulaire (titre, signataires), demande le
+nouveau PDF et relie les deux documents (`supersedes_id`) : la fiche et la page `/verify` de l'ancien indiquent
+« Remplacé par … », celles du nouveau « Remplace … ». Un PDF déjà signé n'est jamais modifié : la nouvelle version est un
+document à part entière, signé par tous.
+
 ## API
 
 | Méthode | Route | Rôle |
@@ -123,7 +135,8 @@ Pour forcer la mise à jour du shell chez les utilisateurs après un changement 
 | POST | `/api/auth/request` | Demande de lien magique `{email}` |
 | GET | `/auth/:token` | Consomme le lien, pose le cookie de session |
 | GET/POST | `/api/me` | Profil (nom, WhatsApp) |
-| GET/POST | `/api/documents` | Liste / création (corps PDF brut + en-tête `X-Document-Meta` base64 `{title, signers[]}`) |
+| GET/POST | `/api/documents` | Liste / création (corps PDF brut + en-tête `X-Document-Meta` base64 `{title, signers[], supersedes?}` ; `supersedes` = id du document que cette version remplace, même émetteur, une seule fois) |
+| POST | `/api/documents/:id/cancel` | Émetteur : annule un document en cours (`cancelled`). Idempotent ; 409 si déjà complet |
 | GET | `/api/documents/:id` | Détail et décompte (`signers[].field`) |
 | PUT | `/api/documents/:id/fields` | Emplacements `{fields: {signerId: {page,x,y,w,h} | null}}` (émetteur ; modifiable même après signature, le PDF final étant généré au téléchargement) |
 | GET | `/api/contacts?q=` | Carnet de signataires de l'émetteur (personnes déjà sollicitées, plus récentes d'abord ; filtre nom/e-mail) |

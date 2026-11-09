@@ -119,7 +119,7 @@ async function loadDocs() {
   list.innerHTML = docs
     .map((d) => {
       const pct = d.total ? Math.round((d.signed / d.total) * 100) : 0;
-      const pill = d.status === "completed" ? '<span class="pill ok">Complet</span>' : `<span class="pill pending">${d.remaining} manquante${d.remaining > 1 ? "s" : ""}</span>`;
+      const pill = d.status === "completed" ? '<span class="pill ok">Complet</span>' : d.status === "cancelled" ? '<span class="pill cancelled">Annulé</span>' : `<span class="pill pending">${d.remaining} manquante${d.remaining > 1 ? "s" : ""}</span>`;
       return `<article class="doc-item" data-id="${d.id}">
         <div><h3>${esc(d.title)}</h3><small class="muted">Créé le ${fmtDate(d.createdAt)} · ${d.total} signataire${d.total > 1 ? "s" : ""}</small>
         <div class="progress"><span style="width:${pct}%"></span></div></div>
@@ -396,8 +396,18 @@ async function restoreDraft() {
   }
   return true;
 }
+let supersedesId = null; // id of the document the new version replaces (set by "Nouvelle version")
+let newVersionFrom = null; // document view to pre-fill the create form from, consumed by route()
+function showSupersedes(d) {
+  supersedesId = d ? d.id : null;
+  const el = $("c-supersedes");
+  el.innerHTML = d ? `Nouvelle version de « ${esc(d.title)} ». L'ancien document sera marqué comme remplacé. <button type="button" id="c-supersedes-clear" class="linkish">Ne pas lier</button>` : "";
+  el.classList.toggle("hidden", !d);
+  if (d) $("c-supersedes-clear").addEventListener("click", () => showSupersedes(null));
+}
 async function resetCreateForm() {
   $("create-form").reset();
+  showSupersedes(null);
   pendingFields = {};
   await setFile(null);
   $("signer-rows").innerHTML = "";
@@ -448,7 +458,7 @@ $("create-form").addEventListener("submit", async (e) => {
   } catch (err) {
     return notice($("create-notice"), "err", esc(err.message));
   }
-  const meta = btoa(unescape(encodeURIComponent(JSON.stringify({ title: $("c-title").value.trim(), signers }))));
+  const meta = btoa(unescape(encodeURIComponent(JSON.stringify({ title: $("c-title").value.trim(), signers, supersedes: supersedesId || undefined }))));
   const btn = e.submitter;
   btn.disabled = true;
   try {
@@ -466,6 +476,32 @@ $("create-form").addEventListener("submit", async (e) => {
 });
 
 // ---- Detail
+let currentDoc = null;
+$("detail-cancel").addEventListener("click", async () => {
+  if (!currentDoc) return;
+  const n = currentDoc.signed;
+  const warn = n ? ` ${n} signature${n > 1 ? "s" : ""} déjà recueillie${n > 1 ? "s" : ""} resteront consultables mais le document ne sera jamais complet.` : "";
+  if (!confirm(`Annuler « ${currentDoc.title} » ?${warn} Les liens de signature cesseront de fonctionner et les signataires en attente seront prévenus.`)) return;
+  try {
+    await api(`/api/documents/${currentDoc.id}/cancel`, { method: "POST" });
+    await loadDetail(currentDoc.id);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+$("detail-newversion").addEventListener("click", async () => {
+  if (!currentDoc) return;
+  if (currentDoc.status === "pending") {
+    if (!confirm(`Créer une nouvelle version annule « ${currentDoc.title} » : les liens actuels cesseront de fonctionner et les signataires en attente seront prévenus. Continuer ?`)) return;
+    try {
+      await api(`/api/documents/${currentDoc.id}/cancel`, { method: "POST" });
+    } catch (err) {
+      return alert(err.message);
+    }
+  }
+  newVersionFrom = currentDoc;
+  location.hash = "new";
+});
 async function loadDetail(id) {
   const d = await api(`/api/documents/${id}`);
   $("d-title").textContent = d.title;
@@ -473,13 +509,24 @@ async function loadDetail(id) {
   $("d-signed").textContent = d.signed;
   $("d-total").textContent = d.total;
   $("d-bar").style.width = d.total ? `${Math.round((d.signed / d.total) * 100)}%` : "0%";
+  const cancelled = d.status === "cancelled";
   const st = $("d-status");
-  st.className = `pill ${d.status === "completed" ? "ok" : "pending"}`;
-  st.textContent = d.status === "completed" ? `Complet · ${fmtDate(d.completedAt)}` : `${d.remaining} signature${d.remaining > 1 ? "s" : ""} manquante${d.remaining > 1 ? "s" : ""}`;
+  st.className = `pill ${d.status === "completed" ? "ok" : cancelled ? "cancelled" : "pending"}`;
+  st.textContent = d.status === "completed" ? `Complet · ${fmtDate(d.completedAt)}` : cancelled ? `Annulé · ${fmtDate(d.cancelledAt)}` : `${d.remaining} signature${d.remaining > 1 ? "s" : ""} manquante${d.remaining > 1 ? "s" : ""}`;
+  const lin = $("d-lineage");
+  const links = [];
+  if (d.supersedes) links.push(`Remplace <a href="#doc=${d.supersedes.id}">« ${esc(d.supersedes.title)} »</a>`);
+  if (d.supersededBy) links.push(`Remplacé par <a href="#doc=${d.supersededBy.id}">« ${esc(d.supersededBy.title)} »</a>`);
+  lin.innerHTML = links.join(" · ");
+  lin.classList.toggle("hidden", links.length === 0);
+  $("detail-cancel").classList.toggle("hidden", d.status !== "pending");
+  $("detail-newversion").classList.toggle("hidden", d.status === "completed" || !!d.supersededBy);
+  $("detail-newversion").textContent = cancelled ? "Nouvelle version" : "Nouvelle version (annule celle-ci)";
+  currentDoc = d;
   $("d-signers").innerHTML = d.signers
     .map(
       (s) => `<li><div><div class="name">${esc(s.name || s.email)}</div><div class="mail">${esc(s.email)}${s.hasPhone ? " · WhatsApp" : ""}</div></div>
-        ${s.signedAt ? `<span class="pill ok">Signé · ${fmtDate(s.signedAt)}</span>` : '<span class="pill pending">En attente</span>'}</li>`,
+        ${s.signedAt ? `<span class="pill ok">Signé · ${fmtDate(s.signedAt)}</span>` : cancelled ? '<span class="pill neutral">Non signé</span>' : '<span class="pill pending">En attente</span>'}</li>`,
     )
     .join("");
   $("detail-original").href = `/api/documents/${d.id}/original.pdf`;
@@ -580,7 +627,17 @@ async function route() {
   if (!me) return show("login");
   const h = location.hash.slice(1);
   if (h === "new") {
-    if (!$("signer-rows").children.length && !(await restoreDraft())) signerRow();
+    if (newVersionFrom) {
+      const from = newVersionFrom;
+      newVersionFrom = null;
+      await clearDraft(me.email);
+      await resetCreateForm();
+      $("signer-rows").innerHTML = "";
+      $("c-title").value = from.title;
+      for (const s of from.signers) signerRow({ name: s.name || "", email: s.email });
+      showSupersedes(from);
+      syncPlacerSigners();
+    } else if (!$("signer-rows").children.length && !(await restoreDraft())) signerRow();
     return show("create");
   }
   if (h.startsWith("doc=")) {
