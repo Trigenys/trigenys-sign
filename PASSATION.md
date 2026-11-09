@@ -75,3 +75,7 @@
 - Logo repris de https://www.trigenys.com/assets/logo.webp (converti en PNG 2x via Playwright → `web/assets/logo.png`, favicon `web/assets/favicon.png`). Bandeau des pages passé en clair (logo + séparateur + « Trigenys Sign », liseré bordeaux), e-mails (bande blanche avec logo servi depuis `PUBLIC_BASE_URL/static/assets/logo.png`), feuille de signatures PDF (logo + titre, fond blanc, liseré). MIME `.webp` ajouté.
 - `npm run check` et tests 11/11 OK, capture locale vérifiée, VPS reconstruit, e-mail de contrôle envoyé à jennifer@trigenys.com.
 - Reste : retour du commanditaire sur le rendu, test WhatsApp de bout en bout.
+
+## 2026-11-09 10:44 — Logo centré dans l'e-mail
+
+- En-tête e-mail : logo centré (52 px) dans la bande blanche. Déployé, e-mail de contrôle envoyé à jennifer@trigenys.com. Bandeau web inchangé (logo à gauche, navigation à droite).
