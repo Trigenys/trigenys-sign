@@ -27,6 +27,7 @@ export function createServer(cfg: Config, svc: Service): http.Server {
   // Pages
   router.add("GET", "/", page("index.html"));
   router.add("GET", "/s/:token", page("sign.html"));
+  router.add("GET", "/h/:code", page("handoff.html"));
   router.add("GET", "/verify/:id", page("verify.html"));
   router.add("GET", "/auth/:token", (ctx) => {
     const user = svc.consumeLogin(ctx.params.token!);
@@ -106,10 +107,20 @@ export function createServer(cfg: Config, svc: Service): http.Server {
     setCookie(ctx.res, "ts_signer", signCookie(cfg.sessionSecret, ctx.params.token!), { maxAge: 86400, secure });
     sendJson(ctx.res, 200, context);
   });
+  router.add("GET", "/api/sign/:token/status", (ctx) => sendJson(ctx.res, 200, svc.signerStatus(ctx.params.token!)));
   router.add("POST", "/api/sign/:token/key", async (ctx) => {
-    const body = await readJson<{ publicKeyJwk: unknown; signaturePng: unknown; strokes: unknown }>(ctx.req);
+    const body = await readJson<{ publicKeyJwk: unknown; signaturePng?: unknown; strokes?: unknown; handoffId?: unknown }>(ctx.req);
     const key = svc.enrollKey(ctx.params.token!, body);
     sendJson(ctx.res, 201, { fingerprint: key.fingerprint, createdAt: key.created_at });
+  });
+  // Phone hand-off: the desktop creates/polls/cancels a code; the phone claims it and submits a drawing.
+  router.add("POST", "/api/sign/:token/handoff", (ctx) => sendJson(ctx.res, 201, svc.createHandoff(ctx.params.token!)));
+  router.add("GET", "/api/sign/:token/handoff/:id", (ctx) => sendJson(ctx.res, 200, svc.handoffStatus(ctx.params.token!, ctx.params.id!)));
+  router.add("POST", "/api/sign/:token/handoff/:id/cancel", (ctx) => sendJson(ctx.res, 200, svc.cancelHandoff(ctx.params.token!, ctx.params.id!)));
+  router.add("POST", "/api/handoff/:code/claim", (ctx) => sendJson(ctx.res, 200, svc.claimHandoff(ctx.params.code!)));
+  router.add("POST", "/api/handoff/:code/drawing", async (ctx) => {
+    const body = await readJson<{ claim: unknown; signaturePng: unknown; strokes: unknown }>(ctx.req);
+    sendJson(ctx.res, 200, svc.submitHandoffDrawing(ctx.params.code!, body));
   });
   router.add("POST", "/api/sign/:token", async (ctx) => {
     const body = await readJson<{ payload: unknown; signature: unknown }>(ctx.req);

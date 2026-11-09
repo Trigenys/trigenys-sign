@@ -10,7 +10,11 @@ export async function api(path, { method = "GET", body, headers = {}, raw = fals
   }
   const res = await fetch(path, init);
   const data = res.headers.get("content-type")?.includes("json") ? await res.json() : null;
-  if (!res.ok) throw new Error(data?.error || `Erreur ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data?.error || `Erreur ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return data;
 }
 

@@ -33,6 +33,21 @@ export interface Document {
   completed_at: string | null;
 }
 
+export interface Handoff {
+  id: string;
+  signer_id: string;
+  code_hash: string;
+  claim_hash: string | null;
+  created_at: string;
+  expires_at: string;
+  claimed_at: string | null;
+  submitted_at: string | null;
+  signature_png: string | null;
+  strokes_json: string | null;
+  consumed_at: string | null;
+  cancelled_at: string | null;
+}
+
 export interface Signer {
   id: string;
   document_id: string;
@@ -94,6 +109,21 @@ CREATE TABLE IF NOT EXISTS magic_links (
   expires_at TEXT NOT NULL,
   used_at TEXT
 );
+CREATE TABLE IF NOT EXISTS handoffs (
+  id TEXT PRIMARY KEY,
+  signer_id TEXT NOT NULL REFERENCES signers(id),
+  code_hash TEXT NOT NULL UNIQUE,
+  claim_hash TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  claimed_at TEXT,
+  submitted_at TEXT,
+  signature_png TEXT,
+  strokes_json TEXT,
+  consumed_at TEXT,
+  cancelled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS handoffs_signer ON handoffs(signer_id, created_at);
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   channel TEXT NOT NULL,

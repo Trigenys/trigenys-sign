@@ -5,6 +5,8 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
 COPY test ./test
+COPY scripts ./scripts
+COPY web ./web
 RUN npm run build && npm prune --omit=dev
 
 FROM node:24-alpine
@@ -14,7 +16,7 @@ RUN addgroup -S app && adduser -S app -G app && mkdir -p /data && chown app:app 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-COPY web ./web
+COPY --from=build /app/web ./web
 USER app
 VOLUME ["/data"]
 EXPOSE 8790

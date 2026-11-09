@@ -41,7 +41,14 @@ affiché sous le formulaire ; les liens des signataires sont dans les logs serve
 | `NOTIFY_BASE_URL`, `NOTIFY_PROJECT` | Trigenys Notify |
 | `NOTIFY_EMAIL_INGEST_KEY` | Clé `EMAIL_{PROJECT}_INGEST_KEY` côté Notify |
 | `NOTIFY_WHATSAPP_DIRECT_INGEST_KEY` | Clé `WHATSAPP_DIRECT_{PROJECT}_INGEST_KEY` côté Notify (route dédiée aux numéros individuels) |
+| `HANDOFF_TTL_MINUTES` | Durée de vie d'un code QR « signer sur mon téléphone » (10 min par défaut) |
 | `DEV_SHOW_LINKS` | Dev uniquement : renvoie le lien magique dans l'API |
+
+## Page de signature
+
+- L'aperçu du PDF (pdf.js auto-hébergé, copié dans `web/vendor/pdfjs/` par `scripts/vendor.mjs` lors de `npm run build`) reste visible pendant tout le parcours ; sur petit écran le panneau devient une feuille en bas d'écran.
+- Première signature : sur un appareil tactile, on trace directement ; sur ordinateur, un QR code ouvre `/h/<code>` sur le téléphone, le tracé revient sur l'ordinateur où la clé est créée et la signature confirmée. L'option « Ici, à la souris » reste disponible.
+- La signature enregistrée (clé Ed25519 non extractible dans le navigateur + tracé) est réutilisée pour les documents suivants ; « Modifier ma signature » relance l'enrôlement.
 
 ## Modèle de signature
 
@@ -73,7 +80,14 @@ Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 | GET | `/api/documents/:id/signed.pdf` | PDF final avec feuille de signatures et manifeste JSON attaché |
 | GET | `/api/verify/:id` | Vérification des signatures |
 | GET | `/api/sign/:token/context` | Contexte signataire (document, clé active, charge utile) |
-| POST | `/api/sign/:token/key` | Enregistre `{publicKeyJwk, signaturePng, strokes}` |
+| GET | `/api/sign/:token/status` | `{signedAt, keyFingerprint}` (sondage léger de la page de signature) |
+| POST | `/api/sign/:token/key` | Enregistre `{publicKeyJwk, signaturePng, strokes}` ou `{publicKeyJwk, handoffId}` (tracé reçu du téléphone) |
+| POST | `/api/sign/:token/handoff` | Crée un code QR de relais vers le téléphone → `{id, url, qrSvg, expiresAt}` |
+| GET | `/api/sign/:token/handoff/:id` | État du relais (`waiting`, `claimed`, `submitted`, `consumed`, `cancelled`, `expired`) et tracé reçu |
+| POST | `/api/sign/:token/handoff/:id/cancel` | Annule le relais |
+| GET | `/h/:code` | Page téléphone du relais (tracé au doigt, aucune clé générée) |
+| POST | `/api/handoff/:code/claim` | Le téléphone réclame le code → `{claim, signerName, documentTitle}` |
+| POST | `/api/handoff/:code/drawing` | Le téléphone envoie `{claim, signaturePng, strokes}` |
 | POST | `/api/sign/:token` | Signe `{payload, signature}` |
 
 ## Déploiement (VPS, Docker + Caddy)

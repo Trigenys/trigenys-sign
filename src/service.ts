@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Config } from "./config.js";
-import { Db, now, type Document, type Signer, type SigningKey, type User } from "./db.js";
+import { Db, now, type Document, type Handoff, type Signer, type SigningKey, type User } from "./db.js";
 import { canonicalJson, isEd25519Jwk, keyFingerprint, newId, randomToken, sha256Hex, verifyEd25519, type Ed25519Jwk } from "./crypto.js";
 import { HttpError } from "./http.js";
 import { E164, type Notifier } from "./notify.js";
 import * as msg from "./messages.js";
 import { renderSignedPdf, type Manifest, type SignatureEntry } from "./pdf.js";
+import { qrSvg } from "./qr.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -225,23 +226,39 @@ export class Service {
     return { v: 1, documentId: doc.id, documentSha256: doc.sha256, signerId: signer.id, keyFingerprint: fingerprint, signedAt: now() };
   }
 
-  /**
-   * Registers (or replaces) the signer's browser key. A replacement is allowed because the
-   * signer reached this page through a link delivered to their own e-mail / WhatsApp.
-   * Old keys are kept (superseded) so past signatures stay verifiable.
-   */
-  enrollKey(token: string, body: { publicKeyJwk: unknown; signaturePng: unknown; strokes: unknown }): SigningKey {
-    const { user } = this.resolveSignerToken(token);
-    if (!isEd25519Jwk(body.publicKeyJwk)) throw new HttpError(400, "Clé publique Ed25519 (JWK) attendue");
+  /** Validates a drawn signature (PNG data URL + normalized strokes) coming from a browser. */
+  validateDrawing(body: { signaturePng: unknown; strokes: unknown }): { png: string; strokesJson: string } {
     const png = String(body.signaturePng ?? "");
     if (!png.startsWith("data:image/png;base64,") || png.length > 400_000) throw new HttpError(400, "Image de signature PNG attendue (max 300 Ko)");
     const strokes = Array.isArray(body.strokes) ? body.strokes : [];
     if (strokes.length === 0) throw new HttpError(400, "Dessinez votre signature avant de l'enregistrer");
+    return { png, strokesJson: JSON.stringify(strokes).slice(0, 200_000) };
+  }
+
+  /**
+   * Registers (or replaces) the signer's browser key. A replacement is allowed because the
+   * signer reached this page through a link delivered to their own e-mail / WhatsApp.
+   * Old keys are kept (superseded) so past signatures stay verifiable.
+   * With `handoffId`, the drawing comes from a phone hand-off submitted for this signer.
+   */
+  enrollKey(token: string, body: { publicKeyJwk: unknown; signaturePng?: unknown; strokes?: unknown; handoffId?: unknown }): SigningKey {
+    const { signer, user } = this.resolveSignerToken(token);
+    if (!isEd25519Jwk(body.publicKeyJwk)) throw new HttpError(400, "Clé publique Ed25519 (JWK) attendue");
+    let handoff: Handoff | undefined;
+    let drawing: { png: string; strokesJson: string };
+    if (body.handoffId !== undefined && body.handoffId !== null) {
+      handoff = this.db.get<Handoff>("SELECT * FROM handoffs WHERE id = ? AND signer_id = ?", String(body.handoffId), signer.id);
+      if (!handoff || !handoff.submitted_at || !handoff.signature_png) throw new HttpError(404, "Aucune signature reçue du téléphone pour ce code");
+      if (handoff.consumed_at) throw new HttpError(409, "Cette signature a déjà été utilisée");
+      drawing = { png: handoff.signature_png, strokesJson: handoff.strokes_json ?? "[]" };
+    } else {
+      drawing = this.validateDrawing({ signaturePng: body.signaturePng, strokes: body.strokes });
+    }
     const fingerprint = keyFingerprint(body.publicKeyJwk);
     if (this.db.get("SELECT 1 FROM signing_keys WHERE fingerprint = ?", fingerprint)) throw new HttpError(409, "Cette clé est déjà enregistrée");
     const key: SigningKey = {
       id: newId(), user_id: user.id, public_key_jwk: JSON.stringify(body.publicKeyJwk), fingerprint,
-      signature_png: png, strokes_json: JSON.stringify(strokes).slice(0, 200_000), created_at: now(), superseded_at: null,
+      signature_png: drawing.png, strokes_json: drawing.strokesJson, created_at: now(), superseded_at: null,
     };
     this.db.transaction(() => {
       this.db.run("UPDATE signing_keys SET superseded_at = ? WHERE user_id = ? AND superseded_at IS NULL", key.created_at, user.id);
@@ -249,8 +266,113 @@ export class Service {
         "INSERT INTO signing_keys (id,user_id,public_key_jwk,fingerprint,signature_png,strokes_json,created_at) VALUES (?,?,?,?,?,?,?)",
         key.id, key.user_id, key.public_key_jwk, key.fingerprint, key.signature_png, key.strokes_json, key.created_at,
       );
+      if (handoff) this.db.run("UPDATE handoffs SET consumed_at = ? WHERE id = ?", key.created_at, handoff.id);
     });
     return key;
+  }
+
+  /** Lightweight view polled by the desktop while the phone draws or after signing. */
+  signerStatus(token: string) {
+    const { signer, user } = this.resolveSignerToken(token);
+    const key = this.activeKey(user.id);
+    return { signedAt: signer.signed_at, keyFingerprint: key?.fingerprint ?? null };
+  }
+
+  // ---------- phone hand-off (QR) ----------
+  // The desktop creates a short-lived code; the phone opens /h/<code>, draws and submits a PNG;
+  // the desktop polls, then enrolls its own key with `handoffId`. The phone never sees the signer token.
+
+  private handoffState(h: Handoff): "waiting" | "claimed" | "submitted" | "consumed" | "cancelled" | "expired" {
+    if (h.consumed_at) return "consumed";
+    if (h.cancelled_at) return "cancelled";
+    if (h.submitted_at) return "submitted";
+    if (Date.parse(h.expires_at) <= Date.now()) return "expired";
+    return h.claimed_at ? "claimed" : "waiting";
+  }
+
+  private handoffView(h: Handoff) {
+    const state = this.handoffState(h);
+    return {
+      id: h.id, state, expiresAt: h.expires_at, claimedAt: h.claimed_at, submittedAt: h.submitted_at,
+      signaturePng: state === "submitted" ? h.signature_png : null,
+      strokes: state === "submitted" && h.strokes_json ? (JSON.parse(h.strokes_json) as unknown) : null,
+    };
+  }
+
+  createHandoff(token: string) {
+    const { signer } = this.resolveSignerToken(token);
+    if (signer.signed_at) throw new HttpError(409, "Vous avez déjà signé ce document");
+    const at = now();
+    const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    const recent = this.db.get<{ n: number }>("SELECT COUNT(*) AS n FROM handoffs WHERE signer_id = ? AND created_at > ?", signer.id, hourAgo)!.n;
+    if (recent >= 20) throw new HttpError(429, "Trop de codes générés : réessayez dans quelques minutes");
+    const code = randomToken(24);
+    const h: Handoff = {
+      id: newId(), signer_id: signer.id, code_hash: sha256Hex(code), claim_hash: null, created_at: at,
+      expires_at: new Date(Date.now() + this.cfg.handoffTtlMinutes * 60_000).toISOString(),
+      claimed_at: null, submitted_at: null, signature_png: null, strokes_json: null, consumed_at: null, cancelled_at: null,
+    };
+    this.db.transaction(() => {
+      // One open code per signer; stale rows older than a day are purged (nothing in them is kept).
+      this.db.run("UPDATE handoffs SET cancelled_at = ? WHERE signer_id = ? AND consumed_at IS NULL AND cancelled_at IS NULL", at, signer.id);
+      this.db.run("DELETE FROM handoffs WHERE expires_at < ? AND consumed_at IS NULL", new Date(Date.now() - 86_400_000).toISOString());
+      this.db.run(
+        "INSERT INTO handoffs (id,signer_id,code_hash,created_at,expires_at) VALUES (?,?,?,?,?)",
+        h.id, h.signer_id, h.code_hash, h.created_at, h.expires_at,
+      );
+    });
+    const url = `${this.cfg.publicBaseUrl}/h/${code}`;
+    return { id: h.id, url, qrSvg: qrSvg(url), expiresAt: h.expires_at, ttlSeconds: this.cfg.handoffTtlMinutes * 60 };
+  }
+
+  private ownHandoff(token: string, id: string): Handoff {
+    const { signer } = this.resolveSignerToken(token);
+    const h = this.db.get<Handoff>("SELECT * FROM handoffs WHERE id = ? AND signer_id = ?", id, signer.id);
+    if (!h) throw new HttpError(404, "Code introuvable");
+    return h;
+  }
+
+  handoffStatus(token: string, id: string) {
+    return this.handoffView(this.ownHandoff(token, id));
+  }
+
+  cancelHandoff(token: string, id: string) {
+    const h = this.ownHandoff(token, id);
+    if (!h.cancelled_at && !h.consumed_at) this.db.run("UPDATE handoffs SET cancelled_at = ? WHERE id = ?", now(), h.id);
+    return { ok: true };
+  }
+
+  private byCode(code: string): Handoff {
+    const h = this.db.get<Handoff>("SELECT * FROM handoffs WHERE code_hash = ?", sha256Hex(String(code ?? "")));
+    if (!h) throw new HttpError(404, "Ce code n'existe pas ou a été remplacé");
+    const state = this.handoffState(h);
+    if (state === "expired") throw new HttpError(410, "Ce code a expiré : générez-en un nouveau sur l'ordinateur");
+    if (state === "cancelled") throw new HttpError(410, "Ce code a été annulé sur l'ordinateur");
+    if (state === "submitted" || state === "consumed") throw new HttpError(409, "Une signature a déjà été envoyée avec ce code");
+    return h;
+  }
+
+  /** Phone side: first open of /h/<code>. Returns a claim secret that must accompany the drawing. */
+  claimHandoff(code: string) {
+    const h = this.byCode(code);
+    const { doc, user } = this.signerOfHandoff(h);
+    const claim = randomToken(24);
+    this.db.run("UPDATE handoffs SET claimed_at = ?, claim_hash = ? WHERE id = ?", now(), sha256Hex(claim), h.id);
+    return { claim, expiresAt: h.expires_at, signerName: user.name || user.email, documentTitle: doc.title };
+  }
+
+  /** Phone side: stores the drawing; the desktop picks it up by polling. */
+  submitHandoffDrawing(code: string, body: { claim: unknown; signaturePng: unknown; strokes: unknown }) {
+    const h = this.byCode(code);
+    if (!h.claim_hash || sha256Hex(String(body.claim ?? "")) !== h.claim_hash) throw new HttpError(403, "Ouvrez d'abord le code depuis votre téléphone");
+    const d = this.validateDrawing(body);
+    this.db.run("UPDATE handoffs SET submitted_at = ?, signature_png = ?, strokes_json = ? WHERE id = ? AND submitted_at IS NULL", now(), d.png, d.strokesJson, h.id);
+    return { ok: true };
+  }
+
+  private signerOfHandoff(h: Handoff) {
+    const signer = this.db.get<Signer>("SELECT * FROM signers WHERE id = ?", h.signer_id)!;
+    return { signer, doc: this.getDocument(signer.document_id), user: this.getUser(signer.user_id)! };
   }
 
   async sign(token: string, body: { payload: unknown; signature: unknown }) {

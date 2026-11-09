@@ -14,6 +14,8 @@ export interface Config {
     whatsappDirectKey: string;
   };
   devShowLinks: boolean;
+  /** Lifetime of a phone hand-off code (QR). */
+  handoffTtlMinutes: number;
 }
 
 function env(name: string, fallback = ""): string {
@@ -51,6 +53,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
         whatsappDirectKey: env("NOTIFY_WHATSAPP_DIRECT_INGEST_KEY"),
       },
       devShowLinks: env("DEV_SHOW_LINKS") === "1",
+      handoffTtlMinutes: Math.min(60, Math.max(2, Number(env("HANDOFF_TTL_MINUTES", "10")) || 10)),
     };
   } finally {
     process.env = prev;

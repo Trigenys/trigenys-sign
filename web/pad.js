@@ -9,7 +9,12 @@ export class SignaturePad {
     this.current = null;
     this.onChange = null;
     this.resize();
-    window.addEventListener("resize", () => this.resize());
+    if (typeof ResizeObserver === "function") {
+      this.ro = new ResizeObserver(() => this.resize());
+      this.ro.observe(canvas);
+    } else {
+      window.addEventListener("resize", () => this.resize());
+    }
     canvas.addEventListener("pointerdown", (e) => this.start(e));
     canvas.addEventListener("pointermove", (e) => this.move(e));
     canvas.addEventListener("pointerup", (e) => this.end(e));
@@ -17,12 +22,20 @@ export class SignaturePad {
   }
 
   resize() {
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
-    this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    const w = this.canvas.offsetWidth, h = this.canvas.offsetHeight;
+    if (!w || !h) return; // hidden: wait for the next layout
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const bw = Math.max(1, Math.round(w * dpr)), bh = Math.max(1, Math.round(h * dpr));
+    if (this.canvas.width !== bw || this.canvas.height !== bh) {
+      this.canvas.width = bw;
+      this.canvas.height = bh;
+    }
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.redraw();
+  }
+
+  destroy() {
+    this.ro?.disconnect();
   }
 
   point(e) {
@@ -66,7 +79,7 @@ export class SignaturePad {
   }
 
   redraw() {
-    const { width: w, height: h } = this.canvas.getBoundingClientRect();
+    const w = this.canvas.offsetWidth, h = this.canvas.offsetHeight;
     this.ctx.clearRect(0, 0, w, h);
     drawStrokes(this.ctx, this.strokes, w, h, this.color, this.width);
   }
@@ -121,13 +134,15 @@ export function drawStrokes(ctx, strokes, w, h, color, width) {
 }
 
 /** Animates serialized strokes ([x,y,t] arrays) on a canvas; resolves when done. */
-export function replayStrokes(canvas, serialized, { color = "#102f50", width = 2.4, duration = 1600 } = {}) {
+export function replayStrokes(canvas, serialized, { color = "#1A0A0E", width = 2.4, duration = 1600 } = {}) {
+  if (!Array.isArray(serialized) || serialized.length === 0) return Promise.resolve();
   const ctx = canvas.getContext("2d");
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
+  const rect = { width: canvas.offsetWidth || 400, height: canvas.offsetHeight || 200 };
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) duration = 0;
   const strokes = serialized.map((s) => s.map(([x, y, t]) => ({ x, y, t })));
   const total = strokes.reduce((n, s) => n + s.length, 0);
   // Fit drawing into the canvas keeping aspect ratio.
@@ -142,7 +157,7 @@ export function replayStrokes(canvas, serialized, { color = "#102f50", width = 2
   return new Promise((resolve) => {
     const start = performance.now();
     const frame = (now) => {
-      const progress = Math.min(1, (now - start) / duration);
+      const progress = duration > 0 ? Math.min(1, (now - start) / duration) : 1;
       const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
       let budget = Math.floor(eased * total);
       const partial = [];

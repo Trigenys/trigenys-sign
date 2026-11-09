@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Votre signature · Trigenys Sign</title>
+<link rel="icon" type="image/png" href="/static/assets/favicon.png">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><img class="logo" src="/static/assets/logo.png" alt="Trigenys Group"><span class="sep"></span><span data-brand-name>Trigenys Sign</span></a>
+</header>
+
+<main class="handoff-main">
+  <div id="error" class="notice err hidden"></div>
+  <div id="loading" class="muted">Connexion à votre ordinateur…</div>
+
+  <section id="draw" class="hidden">
+    <h1>Votre signature</h1>
+    <p class="for">Pour <strong id="doc-title"></strong>, au nom de <strong id="signer-name"></strong>.</p>
+    <div class="card accent">
+      <div class="pad-wrap">
+        <canvas id="pad" class="pad"></canvas>
+        <div class="pad-line"></div>
+        <div class="pad-hint">Signez ici avec le doigt</div>
+      </div>
+      <div class="pad-actions">
+        <button id="pad-clear" class="ghost" type="button">Effacer</button>
+        <button id="send" class="primary" type="button" disabled>Envoyer</button>
+      </div>
+      <div id="notice" class="notice hidden mt"></div>
+    </div>
+    <p class="fine mt">Rien n'est signé depuis ce téléphone : votre signature est simplement transmise à l'ordinateur, où vous la confirmez.</p>
+  </section>
+
+  <section id="sent" class="card hidden">
+    <div class="sent">
+      <canvas id="replay" class="replay"></canvas>
+      <svg class="check" id="check" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/><path d="M19 33 l9 9 l17 -19"/></svg>
+      <h2>Signature envoyée</h2>
+      <p class="muted">Retournez sur votre ordinateur : votre signature y est affichée. Vous pouvez fermer cette page.</p>
+    </div>
+  </section>
+
+  <footer><span data-brand-name>Trigenys Sign</span><span>Les clés privées ne quittent jamais l'appareil du signataire.</span></footer>
+</main>
+
+<script type="module" src="/static/handoff.js"></script>
+</body>
+</html>

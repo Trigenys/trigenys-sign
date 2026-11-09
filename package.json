@@ -4,19 +4,23 @@
   "private": true,
   "description": "Signature interne de documents Trigenys : clés Ed25519 navigateur, notifications via Trigenys Notify",
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/vendor.mjs",
     "check": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsc -p tsconfig.json && node --env-file-if-exists=.env dist/src/index.js",
+    "dev": "npm run build && node --env-file-if-exists=.env dist/src/index.js",
     "start": "node dist/src/index.js",
     "test": "tsc -p tsconfig.json && node --test dist/test/*.test.js"
   },
   "dependencies": {
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "pdfjs-dist": "^6.5.438",
     "typescript": "^5.6.0"
   }
 }
