@@ -69,3 +69,9 @@
 - Les couleurs initiales (navy/orange) étaient celles de Trigenys Insight. Source Group : `EagleFox31/project-registry` (`test/command-center-brand-theme.test.mjs`, Brand Book v1) : primaire #872341, secondaire #22A699, accent #F8B6C3, sombre #1A0A0E, clair #F5F3F4.
 - Mapping : `BRAND_NAVY=#1A0A0E` (bandeaux, titres, encre du pad), `BRAND_ORANGE=#872341` (boutons, accents), `BRAND_OFFWHITE=#F5F3F4`, `--ok=#22A699`. Défauts code, CSS, `.env.example`, CLAUDE.md, `.env` VPS mis à jour ; VPS reconstruit, `/api/config` renvoie la palette Group ; e-mail de contrôle envoyé à jennifer@trigenys.com. Capture locale vérifiée (Playwright).
 - Reste : test WhatsApp de bout en bout par le commanditaire.
+
+## 2026-11-09 10:39 — Logo Trigenys Group intégré
+
+- Logo repris de https://www.trigenys.com/assets/logo.webp (converti en PNG 2x via Playwright → `web/assets/logo.png`, favicon `web/assets/favicon.png`). Bandeau des pages passé en clair (logo + séparateur + « Trigenys Sign », liseré bordeaux), e-mails (bande blanche avec logo servi depuis `PUBLIC_BASE_URL/static/assets/logo.png`), feuille de signatures PDF (logo + titre, fond blanc, liseré). MIME `.webp` ajouté.
+- `npm run check` et tests 11/11 OK, capture locale vérifiée, VPS reconstruit, e-mail de contrôle envoyé à jennifer@trigenys.com.
+- Reste : retour du commanditaire sur le rendu, test WhatsApp de bout en bout.
