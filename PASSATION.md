@@ -182,3 +182,10 @@
 - `1a9b52f` poussé sur main et déployé sur le VPS (`docker compose up -d --build sign`) ; conteneur healthy, https://sign.trigenys.com → 200. RAM avant build : 1,1 Go libres / 2,3 Go disponibles.
 - Prod : aucun document `completed` pour l'instant (le contrat Tiffany Aka'a attend 2 signatures), donc table `anchors` vide ; le premier ancrage réel se fera à la dernière signature de ce contrat, puis confirmation Bitcoin visible sous 1 à 12 h via le balayage (30 min).
 - Prochaine étape : test réel utilisateur sur ce contrat ; vérifier ensuite la fiche (bloc « Horodatage indépendant ») et la page `/verify/:id`. PWA toujours sans réponse.
+
+## 2026-11-09 15:53 — PWA installable déployée
+
+- Décision : PWA plutôt qu'app native (usage interne ponctuel, aucun besoin natif, zéro dépendance, une seule base de code).
+- `67a5639` : manifest généré depuis la marque (`webManifest` dans `src/server.ts`), `web/sw.js` (cache des seuls `/static/*`, `VERSION` à incrémenter pour pousser le shell), `web/pwa.js` (enregistrement SW + bannière d'installation sur le tableau de bord, invite native ou pas-à-pas iPhone, « Plus tard » = 30 jours), icônes `web/assets/icons/`, méta PWA sur les 4 pages. Tests `test/pwa.test.ts` (27/27 verts), Playwright local OK (SW actif, bannière, cache, iOS).
+- Déployé sur le VPS : conteneur recréé, manifest/sw/icône en 200 sur sign.trigenys.com. RAM avant build : 1,3 Go libres.
+- Reste : test réel utilisateur (installation sur téléphone + signature du contrat Tiffany Aka'a pour déclencher le premier ancrage).
