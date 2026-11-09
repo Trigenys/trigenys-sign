@@ -1,6 +1,6 @@
 // Signature pad (pointer events) + stroke replay animation.
 export class SignaturePad {
-  constructor(canvas, { color = "#102f52", width = 2.4 } = {}) {
+  constructor(canvas, { color = "#1A0A0E", width = 2.4 } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.color = color;

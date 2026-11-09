@@ -11,5 +11,5 @@ Signature électronique interne Trigenys (PDF, signataires multiples, clés Ed25
   modification doit être faite des deux côtés et couverte par `test/crypto.test.ts`.
 - Notifications : jamais d'adresse ou de numéro en clair dans les logs (`maskRecipient`). Sans clé Notify,
   mode console.
-- Couleurs : navy `#102f52`, orange `#e07520`, off-white `#f7f7f2` (surchargeables via `BRAND_*`).
+- Couleurs (Brand Book Trigenys Group v1) : sombre `#1A0A0E` (`BRAND_NAVY`), bordeaux `#872341` (`BRAND_ORANGE`, accents et boutons), clair `#F5F3F4` (`BRAND_OFFWHITE`), sarcelle `#22A699` pour les états validés (surchargeables via `BRAND_*`).
 - Passation : `PASSATION.md` en ajout seulement.

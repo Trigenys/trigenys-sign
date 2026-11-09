@@ -40,9 +40,9 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
         .filter(Boolean),
       brand: {
         name: env("BRAND_NAME", "Trigenys Sign"),
-        navy: env("BRAND_NAVY", "#102f52"),
-        orange: env("BRAND_ORANGE", "#e07520"),
-        offwhite: env("BRAND_OFFWHITE", "#f7f7f2"),
+        navy: env("BRAND_NAVY", "#1A0A0E"),
+        orange: env("BRAND_ORANGE", "#872341"),
+        offwhite: env("BRAND_OFFWHITE", "#F5F3F4"),
       },
       notify: {
         baseUrl: env("NOTIFY_BASE_URL").replace(/\/$/, ""),
