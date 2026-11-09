@@ -21,7 +21,7 @@
       <h1 id="title"></h1>
       <p class="muted" style="margin:0 0 12px">Demandé par <strong id="owner"></strong> · <span id="progress"></span></p>
       <iframe id="pdf" class="pdf-frame" title="Document à signer"></iframe>
-      <p class="muted" style="font-size:0.8rem">Empreinte SHA-256 du document : <code id="sha"></code></p>
+      <p class="fine">Empreinte SHA-256 du document : <code id="sha"></code></p>
     </div>
 
     <aside>
@@ -72,13 +72,13 @@
         </div>
       </div>
 
-      <div class="notice mt" style="font-size:0.8rem">
+      <div class="notice mt fine">
         <strong>Valeur de la signature.</strong> Signature électronique au sens simple/avancé : identité attestée par le lien personnel reçu par e-mail/WhatsApp, intégrité garantie par l'empreinte SHA-256 et la clé Ed25519. Ce n'est pas une signature qualifiée.
       </div>
     </aside>
   </div>
 
-  <footer><span data-brand-name>Trigenys Sign</span></footer>
+  <footer><span data-brand-name>Trigenys Sign</span><span>Les clés privées ne quittent jamais l'appareil du signataire.</span></footer>
 </main>
 
 <script type="module" src="/static/sign.js"></script>

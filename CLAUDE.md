@@ -12,4 +12,5 @@ Signature électronique interne Trigenys (PDF, signataires multiples, clés Ed25
 - Notifications : jamais d'adresse ou de numéro en clair dans les logs (`maskRecipient`). Sans clé Notify,
   mode console.
 - Couleurs (Brand Book Trigenys Group v1) : sombre `#1A0A0E` (`BRAND_NAVY`), bordeaux `#872341` (`BRAND_ORANGE`, accents et boutons), clair `#F5F3F4` (`BRAND_OFFWHITE`), sarcelle `#22A699` pour les états validés (surchargeables via `BRAND_*`).
+- Design (skill frontend-design) : Source Serif 4 pour les titres et le mot-marque en italique, Instrument Sans pour le texte ; fond papier, bordeaux = seule couleur d'action, sarcelle = « valide » ; signature manuscrite animée (SVG `pathLength`) dans le hero de connexion ; documents listés en registre (filets), fiches sobres (radius 6). Toute évolution UI passe par ce skill et des captures Playwright avant livraison.
 - Passation : `PASSATION.md` en ajout seulement.

@@ -17,13 +17,17 @@
   <!-- Login -->
   <section id="login" class="hidden">
     <div class="grid two">
-      <div>
+      <div class="hero">
         <h1>Faites signer vos documents en quelques minutes.</h1>
-        <p class="muted">Importez un PDF, désignez les signataires : chacun reçoit un lien par e-mail et WhatsApp, signe avec sa clé personnelle, et vous suivez le décompte en temps réel.</p>
-        <ul class="muted" style="line-height:1.9">
-          <li>Signature électronique avec clé cryptographique Ed25519 générée sur l'appareil du signataire.</li>
-          <li>Empreinte SHA-256 du document scellée dans chaque signature.</li>
-          <li>Page de vérification publique et PDF final avec feuille de signatures.</li>
+        <svg class="autograph" viewBox="0 0 360 90" aria-hidden="true">
+          <path class="baseline" d="M4 76 H356"/>
+          <path class="ink" pathLength="1" d="M14 70 C 30 20, 48 14, 44 40 C 40 66, 22 78, 36 74 C 58 68, 80 30, 96 24 C 110 18, 100 50, 92 62 C 88 70, 100 72, 112 56 C 122 42, 126 54, 134 56 C 148 60, 160 34, 168 30 C 176 26, 170 52, 180 56 C 194 62, 214 24, 226 22 C 240 18, 232 54, 246 58 C 262 62, 284 30, 300 26 C 318 22, 306 60, 330 62 C 342 63, 350 54, 356 48"/>
+        </svg>
+        <p class="lede">Importez un PDF, désignez les signataires : chacun reçoit un lien par e-mail et WhatsApp, signe avec sa clé personnelle, et vous suivez le décompte en temps réel.</p>
+        <ul class="facts">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.9 12.1 20 3M15 8l3 3M18 5l3 3"/></svg><span>Clé cryptographique Ed25519 générée sur l'appareil du signataire, jamais transmise.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Empreinte SHA-256 du document scellée dans chaque signature.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>Page de vérification publique et PDF final avec feuille de signatures.</span></li>
         </ul>
       </div>
       <div class="card accent">
@@ -43,9 +47,9 @@
   <section id="dash" class="hidden">
     <div class="grid doc">
       <div>
-        <div class="row space">
-          <h1 style="margin:0">Mes documents</h1>
-          <button id="new-doc" class="primary">+ Nouveau document</button>
+        <div class="page-head">
+          <h1>Mes documents</h1>
+          <button id="new-doc" class="primary">Nouveau document</button>
         </div>
         <div id="doc-list" class="doc-list mt"></div>
         <p id="doc-empty" class="muted hidden">Aucun document pour le moment. Créez-en un pour commencer.</p>
@@ -77,7 +81,7 @@
         <input id="c-file" type="file" accept="application/pdf" required>
         <label>Signataires</label>
         <div id="signer-rows"></div>
-        <div class="row mt"><button type="button" id="add-signer" class="ghost">+ Ajouter un signataire</button></div>
+        <div class="row mt"><button type="button" id="add-signer" class="ghost">Ajouter un signataire</button></div>
         <div id="create-notice" class="notice hidden mt"></div>
         <div class="row mt space">
           <small class="muted">Chaque signataire recevra un lien personnel par e-mail et, si un numéro est fourni, par WhatsApp.</small>
@@ -90,11 +94,11 @@
   <!-- Document detail -->
   <section id="detail" class="hidden">
     <div class="row space">
-      <button id="detail-back" class="ghost">← Retour</button>
+      <button id="detail-back" class="ghost">Retour</button>
       <div class="row">
         <a id="detail-original" class="btn ghost" target="_blank" rel="noopener">Original</a>
         <a id="detail-signed" class="btn ghost" target="_blank" rel="noopener">PDF signé</a>
-        <a id="detail-verify" class="btn" target="_blank" rel="noopener">Vérifier</a>
+        <a id="detail-verify" class="btn primary" target="_blank" rel="noopener">Vérifier</a>
       </div>
     </div>
     <div class="grid doc mt">
@@ -117,7 +121,7 @@
     </div>
   </section>
 
-  <footer><span data-brand-name>Trigenys Sign</span> · Signature électronique interne. Les clés privées ne quittent jamais l'appareil du signataire.</footer>
+  <footer><span data-brand-name>Trigenys Sign</span><span>Signature électronique interne. Les clés privées ne quittent jamais l'appareil du signataire.</span></footer>
 </main>
 
 <script type="module" src="/static/app.js"></script>

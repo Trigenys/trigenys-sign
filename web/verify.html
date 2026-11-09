@@ -27,11 +27,11 @@
         <a id="pdf" class="btn ghost" target="_blank" rel="noopener">Télécharger le PDF signé</a>
       </div>
     </div>
-    <div class="notice mt" style="font-size:0.8rem">
+    <div class="notice mt fine">
       Chaque signature est une signature Ed25519 sur une charge utile canonique contenant l'identifiant du document, son empreinte SHA-256, l'identifiant du signataire, l'empreinte de sa clé publique et l'horodatage. La vérification recalcule l'empreinte du fichier conservé et contrôle chaque signature avec la clé publique enregistrée.
     </div>
   </div>
-  <footer><span data-brand-name>Trigenys Sign</span></footer>
+  <footer><span data-brand-name>Trigenys Sign</span><span>Vérification publique des signatures.</span></footer>
 </main>
 <script type="module">
 import { api, bootBrand, esc, fmtDate, notice } from "/static/common.js";
