@@ -79,3 +79,8 @@
 ## 2026-11-09 10:44 — Logo centré dans l'e-mail
 
 - En-tête e-mail : logo centré (52 px) dans la bande blanche. Déployé, e-mail de contrôle envoyé à jennifer@trigenys.com. Bandeau web inchangé (logo à gauche, navigation à droite).
+
+## 2026-11-09 10:57 — Refonte visuelle du front
+
+- Retour utilisateur : design jugé laid, aucun skill design utilisé, aucune maquette montrée. Refonte avec le skill frontend-design : Source Serif 4 + Instrument Sans, fond papier, bordeaux action / sarcelle valide, signature manuscrite animée dans le hero, liste des documents en registre, fiches sobres. Captures Playwright des 6 écrans vérifiées (login desktop+mobile, dashboard, création, détail, signature, vérification). Tests 11/11, déployé sur sign.trigenys.com. CLAUDE.md : ligne Design ajoutée.
+- Leçon : toute UI neuve passe par le skill frontend-design et des captures avant livraison, jamais un CSS par défaut.
