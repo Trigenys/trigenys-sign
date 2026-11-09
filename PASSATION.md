@@ -148,3 +148,8 @@
 - Preuves : `npm run check` OK, `npm test` 19/19 (`test/fields.test.ts` ajouté), `npm run build` OK, scénario Playwright complet (3 zones auto sur page 2, drag, retrait/replacement, restauration brouillon, PUT 200, PDF final 3 pages avec 3 images en page 2).
 - Docs : README (section « Emplacement des signatures », table API), CLAUDE.md.
 - Non déployé (ni ce lot, ni le correctif relais 2232036) : attend l'accord explicite. PWA toujours en attente de réponse.
+
+## 2026-11-09 13:19 — Déploiement prod : zones de signature + relais
+
+- Déployé sur le VPS (61bd0c7, `git pull` + `docker compose up -d --build`) : relais téléphone (2232036) et zones de signature. Site 200, `fields.js` servi, migration `field_json` appliquée.
+- Reste : test réel QR/WhatsApp côté utilisateur ; question PWA ouverte.
