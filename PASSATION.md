@@ -37,3 +37,9 @@
 
 - DNS A `sign` → 15.235.90.215 posé par le commanditaire (Spaceship). Certificat Let s Encrypt obtenu après `systemctl reload caddy` (premiers essais avaient échoué quand le DNS pointait ailleurs ; ZeroSSL fallback cassé, sans importance).
 - `GET /api/config` en 200 via HTTPS. Les notifications restent dépendantes du déploiement Notify (session relancée, PR #62).
+
+## 2026-11-09 09:51 — Logs d'échec Notify + état réel des envois
+
+- Dernière notification en base VPS : `login` e-mail → `rejected`, `HTTP 404` (projet `trigenys-sign` encore inconnu du Worker Notify : PR #62 toujours OPEN, non déployée).
+- `src/notify.ts` : log console (destinataire masqué, statut HTTP ou erreur réseau) sur refus et échec réseau. Tests 11/11, commit `Log refused and failed Notify dispatches with masked recipient`, poussé, VPS reconstruit (`/api/config` 200).
+- Reste : attendre la session Notify (merge #62, projet déclaré, secrets, deploy), puis test de bout en bout réel ; supprimer `C:	mp	rigenys-sign-notify-keys.env`.
