@@ -203,3 +203,10 @@
 - UI : fiche → « Annuler ce document » (pending), « Nouvelle version » (pré-remplit titre + signataires, note « Nouvelle version de … », annule d'abord si encore pending), pastille « Annulé », lignée « Remplace / Remplacé par » ; liste → pastille « Annulé » ; `/verify` → pastille « Annulé par l'émetteur le … », avertissement, « Non signé », lignée ; page de signature → avertissement 410. `web/sw.js` VERSION v2.
 - Tests : `test/cancel.test.ts` (4 tests, service + HTTP) ; suite complète 31/31. Playwright local : annulation, nouvelle version, lignée, liste, verify, lien 410 — tout vert (captures dans le scratchpad de session).
 - Suite : déploiement VPS (script `deploy-cancel.ps1` : push, pull, free -m, compose up --build, curls, PRAGMA colonnes).
+
+## 2026-11-09 17:59 — Annulation et nouvelle version : déployé en production
+
+- Commit `07105ca` poussé sur `main`, VPS `git pull --ff-only` + `docker compose up -d --build sign` (RAM dispo 2,5 Go avant build).
+- Vérifications prod : `/` 200, `/sw.js` 200 avec `VERSION = "v2"`, `POST /api/documents/x/cancel` sans session → 401, `PRAGMA table_info(documents)` contient `cancelled_at` et `supersedes_id`, documents : 1 `pending` (contrat Tiffany Aka'a), 0 annulé.
+- Leçon : les scripts de déploiement PowerShell ne doivent pas imbriquer du JS dans la commande `ssh` (erreur de parsing) ; la partie distante vit dans un script bash transmis via `Get-Content … | ssh … "bash -s"`.
+- Reste côté utilisateur : test PWA sur mobile réel, signature du contrat Tiffany Aka'a.
