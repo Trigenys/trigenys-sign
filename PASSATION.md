@@ -176,3 +176,9 @@
 - Câblage : ancrage lancé à la dernière signature (`Service.sign`), `verify()` expose `anchors[]`, routes `GET /api/verify/:id/proof/:kind` et `POST /api/documents/:id/anchor`, bloc « Horodatage independant » + pièces jointes `.ots`/`.tsr` dans le PDF final, fiche document (bouton Actualiser) et page publique de vérification.
 - Preuves : `npm run check` OK, `npm test` 24/24 (5 tests `test/anchors.test.ts`, réseau simulé), `npm run build` OK, fumée réelle : 3 calendriers OTS OK (bob parfois « fetch failed »), DigiCert OK, freetsa.org injoignable depuis ici → DigiCert mis en premier. E2E Playwright local : document signé → ots pending + tsa confirmed en ~1 s, fiche et page de vérification rendues, preuves téléchargeables, PDF 106 Ko sans erreur console.
 - Non commité au moment de cette entrée ; déploiement VPS en attente d'accord. Premier démarrage prod : le balayage ancrera les documents déjà complets après 15 s. PWA toujours sans réponse.
+
+## 2026-11-09 15:35 — Déploiement de l'horodatage indépendant
+
+- `1a9b52f` poussé sur main et déployé sur le VPS (`docker compose up -d --build sign`) ; conteneur healthy, https://sign.trigenys.com → 200. RAM avant build : 1,1 Go libres / 2,3 Go disponibles.
+- Prod : aucun document `completed` pour l'instant (le contrat Tiffany Aka'a attend 2 signatures), donc table `anchors` vide ; le premier ancrage réel se fera à la dernière signature de ce contrat, puis confirmation Bitcoin visible sous 1 à 12 h via le balayage (30 min).
+- Prochaine étape : test réel utilisateur sur ce contrat ; vérifier ensuite la fiche (bloc « Horodatage indépendant ») et la page `/verify/:id`. PWA toujours sans réponse.
