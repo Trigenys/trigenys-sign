@@ -59,6 +59,7 @@ export interface Signer {
   payload_json: string | null;
   signature_b64: string | null;
   notified_at: string | null;
+  field_json: string | null; // JSON SignatureField: where the drawing is placed on the original pages
 }
 
 const SCHEMA = `
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS signers (
   payload_json TEXT,
   signature_b64 TEXT,
   notified_at TEXT,
+  field_json TEXT,
   UNIQUE(document_id, user_id)
 );
 CREATE TABLE IF NOT EXISTS magic_links (
@@ -143,6 +145,7 @@ export class Db {
     this.sql = new DatabaseSync(path.join(dataDir, "trigenys-sign.sqlite"));
     this.sql.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     this.sql.exec(SCHEMA);
+    this.migrate();
   }
 
   get<T>(query: string, ...params: unknown[]): T | undefined {
@@ -154,6 +157,15 @@ export class Db {
   run(query: string, ...params: unknown[]): void {
     this.sql.prepare(query).run(...(params as never[]));
   }
+  /** Additive, idempotent column migrations for databases created by earlier versions. */
+  private migrate(): void {
+    const add = (table: string, column: string, type: string) => {
+      const cols = this.sql.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === column)) this.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    };
+    add("signers", "field_json", "TEXT");
+  }
+
   transaction<T>(fn: () => T): T {
     this.sql.exec("BEGIN");
     try {

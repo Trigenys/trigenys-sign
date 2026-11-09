@@ -83,6 +83,10 @@ export function createServer(cfg: Config, svc: Service): http.Server {
     sendJson(ctx.res, 200, svc.documentView(doc));
   });
 
+  router.add("PUT", "/api/documents/:id/fields", async (ctx) => {
+    const body = await readJson<{ fields?: unknown }>(ctx.req);
+    sendJson(ctx.res, 200, svc.setFields(requireUser(ctx), ctx.params.id!, body.fields));
+  });
   // Files: original is readable by owner or a signer (via token cookie); signed PDF is public (its id is unguessable).
   router.add("GET", "/api/documents/:id/original.pdf", (ctx) => {
     const doc = svc.getDocument(ctx.params.id!);

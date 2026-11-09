@@ -138,3 +138,13 @@
 - Bug vu en prod : « Ouvrez d'abord le code depuis votre téléphone » après Envoyer, alors que le code avait bien été ouvert (base : claim posé à 11:48:48). Cause : un second chargement de `/h/<code>` régénérait le secret et invalidait le premier onglet.
 - Correctif (2232036) : `claimHandoff(code, existing)` garde le secret si le téléphone le représente ; `handoff.js` le stocke dans `localStorage` (`handoff-claim:<code>`) et le purge après envoi ; message 403 explicite (recharger). Test ajouté dans `test/handoff.test.ts` (17/17 verts), route vérifiée en HTTP.
 - Non déployé : attend l'accord explicite. PWA toujours en attente de réponse.
+
+## 2026-11-09 13:15 — Zones de signature placées dans le document
+
+- Demande : la signature doit s'incruster dans l'espace « Signature : » prévu par le document (contrat à 3 colonnes), la feuille de signatures reste annexée.
+- Modèle : `signers.field_json` (migration additive), champ `{page, x, y, w, h}` en fractions de page, origine haut-gauche, `parseField` dans `src/pdf.ts`. `placeSignatures` incruste le PNG (contain, centré, aligné bas, rotation 0/90/180/270) avant la feuille.
+- API : champ `field` accepté à la création (400 si invalide), renvoyé dans `signers[].field`, `PUT /api/documents/:id/fields` (émetteur ; no-op idempotent ; 409 si déjà signé).
+- Front : `web/fields.js` (`FieldPlacer` + `renderLegend`) : rendu pdf.js, suggestion depuis la couche texte « Signature » (colonnes détectées par baseline partagée), clic/drag/resize, légende. Branché dans le formulaire de création (brouillon conservé) et dans la fiche document (bouton masqué dès qu'une signature existe).
+- Preuves : `npm run check` OK, `npm test` 19/19 (`test/fields.test.ts` ajouté), `npm run build` OK, scénario Playwright complet (3 zones auto sur page 2, drag, retrait/replacement, restauration brouillon, PUT 200, PDF final 3 pages avec 3 images en page 2).
+- Docs : README (section « Emplacement des signatures », table API), CLAUDE.md.
+- Non déployé (ni ce lot, ni le correctif relais 2232036) : attend l'accord explicite. PWA toujours en attente de réponse.

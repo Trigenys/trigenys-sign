@@ -12,7 +12,7 @@ un PDF final avec feuille de signatures sont produits.
 ## Stack
 
 - Node ≥ 24, TypeScript (ESM), aucun framework : `node:http`, `node:sqlite`, `node:crypto`.
-- `pdf-lib` pour la feuille de signatures ajoutée au PDF final (l'original n'est jamais modifié).
+- `pdf-lib` pour l’incrustation des signatures dans leurs zones et la feuille de signatures ajoutée au PDF final (le fichier original stocké n’est jamais modifié).
 - Front statique (`web/`) : WebCrypto Ed25519, canvas de signature, rejeu animé des tracés.
 - Notifications : contrat Trigenys Notify V1 (`/v1/dispatch/{project}/email` et
   `/v1/dispatch/{project}/whatsapp-direct`). Sans clé configurée, mode console (liens journalisés).
@@ -48,6 +48,10 @@ affiché sous le formulaire ; les liens des signataires sont dans les logs serve
 
 Le brouillon (titre, signataires, PDF) est enregistré dans l'IndexedDB du navigateur, par compte (`web/draft.js`), et restauré à la prochaine ouverture : un rechargement ou une mise à jour de l'application ne perd rien. Il est vidé à l'envoi réussi ou via « Vider le brouillon » ; « Annuler » le conserve.
 
+### Emplacement des signatures
+
+Dès qu’un PDF est choisi, ses pages s’affichent sous les signataires avec une zone par personne (`web/fields.js`). Les mentions « Signature » du texte du PDF sont détectées (couche texte pdf.js) et proposent un emplacement : sous le libellé quand plusieurs colonnes partagent la ligne, à droite sinon. Chaque zone se déplace et se redimensionne ; « Détecter « Signature » » relance la proposition. Les zones sont stockées en fractions de page (`{page, x, y, w, h}`, origine en haut à gauche, `signers.field_json`) et restent modifiables depuis la fiche du document (`PUT /api/documents/:id/fields`) tant que personne n’a signé. Dans le PDF final, la signature est incrustée dans sa zone (rotation de page gérée) ; un signataire sans zone n’apparaît que sur la feuille de signatures, toujours annexée.
+
 ## Page de signature
 
 - L'aperçu du PDF (pdf.js auto-hébergé, copié dans `web/vendor/pdfjs/` par `scripts/vendor.mjs` lors de `npm run build`) reste visible pendant tout le parcours ; sur petit écran le panneau devient une feuille en bas d'écran.
@@ -79,7 +83,8 @@ Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 | GET | `/auth/:token` | Consomme le lien, pose le cookie de session |
 | GET/POST | `/api/me` | Profil (nom, WhatsApp) |
 | GET/POST | `/api/documents` | Liste / création (corps PDF brut + en-tête `X-Document-Meta` base64 `{title, signers[]}`) |
-| GET | `/api/documents/:id` | Détail et décompte |
+| GET | `/api/documents/:id` | Détail et décompte (`signers[].field`) |
+| PUT | `/api/documents/:id/fields` | Emplacements `{fields: {signerId: {page,x,y,w,h} | null}}` (émetteur ; 409 pour un signataire ayant déjà signé) |
 | GET | `/api/contacts?q=` | Carnet de signataires de l'émetteur (personnes déjà sollicitées, plus récentes d'abord ; filtre nom/e-mail) |
 | GET | `/api/documents/:id/original.pdf` | Original (émetteur ou signataire) |
 | GET | `/api/documents/:id/signed.pdf` | PDF final avec feuille de signatures et manifeste JSON attaché |

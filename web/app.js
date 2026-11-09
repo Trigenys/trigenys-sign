@@ -1,5 +1,6 @@
 import { api, bootBrand, esc, fmtDate, notice } from "./common.js";
 import { clearDraft, debounce, hasContent, loadDraft, saveDraft } from "./draft.js";
+import { FieldPlacer, renderLegend } from "./fields.js";
 
 const $ = (id) => document.getElementById(id);
 const sections = ["login", "dash", "create", "detail"];
@@ -215,15 +216,82 @@ function signerRow(values = {}) {
     <button type="button" class="remove" title="Retirer">✕</button>`;
   row.querySelector(".remove").addEventListener("click", () => {
     if ($("signer-rows").children.length > 1) row.remove();
+    syncPlacerSigners();
     queueDraft();
   });
+  row.dataset.key = String(++rowSeq);
+  if (values.field) pendingFields[row.dataset.key] = values.field;
   $("signer-rows").appendChild(row);
+  row.querySelector("[name=name]").addEventListener("input", syncPlacerSigners);
   phoneField(row.querySelector("[name=phone]"), values.phone || "");
   combobox(row.querySelector("[name=name]"), row);
   combobox(row.querySelector("[name=email]"), row);
   row.querySelector("[name=phone]").addEventListener("countrychange", queueDraft);
 }
-$("add-signer").addEventListener("click", () => { signerRow(); queueDraft(); });
+$("add-signer").addEventListener("click", () => { signerRow(); syncPlacerSigners(); queueDraft(); });
+
+// ---- Signature placement on the PDF (create form)
+let rowSeq = 0;
+let pendingFields = {}; // row key -> field, applied once the PDF is rendered (draft restore)
+let placer = null;
+let placerFile = null; // the File currently rendered
+function rowSigners() {
+  return [...$("signer-rows").querySelectorAll(".signer-row")].map((r) => ({ key: r.dataset.key, name: r.querySelector("[name=name]").value.trim() }));
+}
+function syncPlacerSigners() {
+  if (!placer || placerFile !== pickedFile) return;
+  placer.setSigners(rowSigners());
+  renderLegend($("fields-legend"), placer);
+  updateFieldsHint();
+}
+function updateFieldsHint() {
+  if (!placer) return;
+  const fields = placer.getFields();
+  const missing = placer.signers.filter((s) => !fields[s.key]).length;
+  $("fields-hint").textContent = placer.armed
+    ? "Cliquez sur la page à l'endroit où la signature doit apparaître."
+    : missing === 0
+      ? "Chaque signature sera incrustée à l'emplacement indiqué. La feuille de signatures reste annexée au PDF final."
+      : `${missing} signataire${missing > 1 ? "s" : ""} sans emplacement : sa signature n'apparaîtra que sur la feuille annexée. Cliquez sur son nom, puis sur la page, pour la placer.`;
+}
+async function syncPlacerFile() {
+  const wrap = $("fields-wrap");
+  if (!pickedFile) {
+    wrap.classList.add("hidden");
+    placerFile = null;
+    if (placer) placer.setFields({});
+    return;
+  }
+  if (!placer) {
+    placer = new FieldPlacer($("fields-stage"), {
+      onChange: () => { renderLegend($("fields-legend"), placer); updateFieldsHint(); if (placerFile === pickedFile) queueDraft(); },
+    });
+    $("fields-suggest").addEventListener("click", async () => {
+      const n = await placer.suggest();
+      if (!n) notice($("create-notice"), "info", "Aucune mention « Signature » trouvée dans le texte du PDF : placez les zones à la main.");
+    });
+  }
+  if (placerFile === pickedFile) return;
+  const file = pickedFile;
+  placerFile = file;
+  const keep = placer.getFields();
+  wrap.classList.remove("hidden");
+  try {
+    await placer.load({ data: await file.arrayBuffer() });
+  } catch {
+    if (placerFile === file) wrap.classList.add("hidden");
+    return;
+  }
+  if (placerFile !== file) return;
+  placer.setSigners(rowSigners());
+  const restored = Object.keys(pendingFields).length ? pendingFields : keep;
+  pendingFields = {};
+  placer.setFields(restored);
+  if (!Object.values(placer.getFields()).some(Boolean)) await placer.suggest();
+  renderLegend($("fields-legend"), placer);
+  updateFieldsHint();
+  queueDraft();
+}
 
 // ---- PDF dropzone
 let pickedFile = null;
@@ -286,7 +354,8 @@ function readForm() {
     signers: [...$("signer-rows").querySelectorAll(".signer-row")].map((r) => {
       const tel = r.querySelector("[name=phone]");
       const iti = phones.get(tel);
-      return { name: r.querySelector("[name=name]").value, email: r.querySelector("[name=email]").value, phone: (iti ? iti.getNumber() : tel.value) || "" };
+      const field = placer && placerFile === pickedFile ? placer.getFields()[r.dataset.key] || null : pendingFields[r.dataset.key] || null;
+      return { name: r.querySelector("[name=name]").value, email: r.querySelector("[name=email]").value, phone: (iti ? iti.getNumber() : tel.value) || "", field };
     }),
     file: pickedFile,
     fileName: pickedFile?.name || null,
@@ -328,6 +397,7 @@ async function restoreDraft() {
 }
 async function resetCreateForm() {
   $("create-form").reset();
+  pendingFields = {};
   await setFile(null);
   $("signer-rows").innerHTML = "";
   signerRow();
@@ -340,6 +410,7 @@ $("draft-clear").addEventListener("click", async () => {
 $("dz-replace").addEventListener("click", () => $("c-file").click());
 $("dz-remove").addEventListener("click", () => setFile(null));
 dz.addEventListener("setfile", queueDraft);
+dz.addEventListener("setfile", () => { syncPlacerFile(); });
 for (const ev of ["dragenter", "dragover"]) {
   dz.addEventListener(ev, (e) => {
     e.preventDefault();
@@ -371,6 +442,7 @@ $("create-form").addEventListener("submit", async (e) => {
       name: r.querySelector("[name=name]").value.trim(),
       email: r.querySelector("[name=email]").value.trim(),
       phone: phoneValue(r.querySelector("[name=phone]")) || undefined,
+      field: placer && placerFile === pickedFile ? placer.getFields()[r.dataset.key] || null : null,
     }));
   } catch (err) {
     return notice($("create-notice"), "err", esc(err.message));
@@ -410,9 +482,56 @@ async function loadDetail(id) {
     )
     .join("");
   $("detail-original").href = `/api/documents/${d.id}/original.pdf`;
+  renderDetailFields(d);
   $("detail-signed").href = `/api/documents/${d.id}/signed.pdf`;
   $("detail-signed").classList.toggle("hidden", d.signed === 0);
   $("detail-verify").href = `/verify/${d.id}`;
+}
+
+// ---- Detail: where each signature lands (editable until the first signature)
+let detailPlacer = null;
+let detailPlacerDoc = null;
+function renderDetailFields(d) {
+  const wrap = $("d-fields");
+  const placed = d.signers.filter((s) => s.field).length;
+  $("d-fields-summary").textContent = placed === 0
+    ? "Les signatures apparaissent uniquement sur la feuille de signatures annexée au PDF final."
+    : placed === d.signers.length
+      ? "Chaque signature est incrustée dans le document à l'emplacement prévu, en plus de la feuille annexée."
+      : `${placed} signature${placed > 1 ? "s" : ""} sur ${d.signers.length} incrustée${placed > 1 ? "s" : ""} dans le document ; les autres n'apparaissent que sur la feuille annexée.`;
+  const editable = d.signed === 0;
+  const editBtn = $("d-fields-edit");
+  editBtn.textContent = placed ? "Modifier les emplacements" : "Placer les signatures";
+  editBtn.classList.toggle("hidden", !editable);
+  $("d-fields-editor").classList.add("hidden");
+  $("d-fields-notice").classList.add("hidden");
+  editBtn.onclick = async () => {
+    $("d-fields-editor").classList.remove("hidden");
+    editBtn.classList.add("hidden");
+    if (!detailPlacer) {
+      detailPlacer = new FieldPlacer($("d-fields-stage"), { onChange: () => { renderLegend($("d-fields-legend"), detailPlacer); $("d-fields-save").disabled = false; } });
+      $("d-fields-suggest").addEventListener("click", () => detailPlacer.suggest());
+    }
+    if (detailPlacerDoc !== d.id) {
+      detailPlacerDoc = d.id;
+      await detailPlacer.load({ url: `/api/documents/${d.id}/original.pdf` });
+    }
+    detailPlacer.setSigners(d.signers.map((s) => ({ key: s.id, name: s.name || s.email })));
+    detailPlacer.setFields(Object.fromEntries(d.signers.map((s) => [s.id, s.field])));
+    renderLegend($("d-fields-legend"), detailPlacer);
+    $("d-fields-save").disabled = true;
+  };
+  $("d-fields-save").onclick = async () => {
+    try {
+      const next = await api(`/api/documents/${d.id}/fields`, { method: "PUT", body: { fields: detailPlacer.getFields() } });
+      renderDetailFields(next);
+      notice($("d-fields-notice"), "ok", "Emplacements enregistrés.");
+    } catch (err) {
+      notice($("d-fields-notice"), "err", esc(err.message));
+    }
+  };
+  $("d-fields-cancel").onclick = () => renderDetailFields(d);
+  wrap.classList.remove("hidden");
 }
 
 // ---- Router

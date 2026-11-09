@@ -6,15 +6,22 @@ import { canonicalJson, isEd25519Jwk, keyFingerprint, newId, randomToken, sha256
 import { HttpError } from "./http.js";
 import { E164, type Notifier } from "./notify.js";
 import * as msg from "./messages.js";
-import { renderSignedPdf, type Manifest, type SignatureEntry } from "./pdf.js";
+import { parseField, renderSignedPdf, type Manifest, type SignatureEntry, type SignatureField } from "./pdf.js";
 import { qrSvg } from "./qr.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function fieldOf(s: { field_json: string | null }): SignatureField | null {
+  if (!s.field_json) return null;
+  try { return parseField(JSON.parse(s.field_json)); } catch { return null; }
+}
 
 export interface SignerInput {
   name: string;
   email: string;
   phone?: string;
+  /** Where the signature is drawn on the original pages; null = signature sheet only. */
+  field?: SignatureField | null;
 }
 
 export interface SignPayload {
@@ -112,7 +119,9 @@ export class Service {
       name: String(s.name ?? "").trim().slice(0, 120),
       email: this.normalizeEmail(s.email),
       phone: this.normalizePhone(s.phone) ?? undefined,
+      field: s.field == null ? null : parseField(s.field),
     }));
+    if ((input.signers as Array<Record<string, unknown>>).some((s, i) => s.field != null && !signers[i]!.field)) throw new HttpError(400, "Emplacement de signature invalide");
     if (signers.some((s) => !s.name)) throw new HttpError(400, "Chaque signataire doit avoir un nom");
     if (new Set(signers.map((s) => s.email)).size !== signers.length) throw new HttpError(400, "Un signataire apparaît deux fois");
 
@@ -131,10 +140,10 @@ export class Service {
       signers.forEach((s, i) => {
         const user = this.upsertUser({ email: s.email, name: s.name, phone: s.phone ?? null });
         const token = randomToken();
-        const signer: Signer = { id: newId(), document_id: id, user_id: user.id, token_hash: sha256Hex(token), position: i, signed_at: null, key_id: null, payload_json: null, signature_b64: null, notified_at: null };
+        const signer: Signer = { id: newId(), document_id: id, user_id: user.id, token_hash: sha256Hex(token), position: i, signed_at: null, key_id: null, payload_json: null, signature_b64: null, notified_at: null, field_json: s.field ? JSON.stringify(s.field) : null };
         this.db.run(
-          "INSERT INTO signers (id,document_id,user_id,token_hash,position) VALUES (?,?,?,?,?)",
-          signer.id, signer.document_id, signer.user_id, signer.token_hash, signer.position,
+          "INSERT INTO signers (id,document_id,user_id,token_hash,position,field_json) VALUES (?,?,?,?,?,?)",
+          signer.id, signer.document_id, signer.user_id, signer.token_hash, signer.position, signer.field_json,
         );
         tokens.push({ signer, user, token });
       });
@@ -202,8 +211,34 @@ export class Service {
       signed,
       remaining: signers.length - signed,
       verifyUrl: `${this.cfg.publicBaseUrl}/verify/${d.id}`,
-      signers: signers.map((s) => ({ id: s.id, name: s.name, email: s.email, hasPhone: !!s.phone, signedAt: s.signed_at, notifiedAt: s.notified_at })),
+      signers: signers.map((s) => ({ id: s.id, name: s.name, email: s.email, hasPhone: !!s.phone, signedAt: s.signed_at, notifiedAt: s.notified_at, field: fieldOf(s) })),
     };
+  }
+
+  /**
+   * Owner sets or clears where each signature lands on the original pages. Only signers who have not
+   * signed yet can be moved; unknown ids are rejected; omitted signers are left as they are.
+   */
+  setFields(owner: User, docId: string, fields: unknown) {
+    const doc = this.getDocument(docId);
+    if (doc.owner_id !== owner.id) throw new HttpError(403, "Accès refusé");
+    if (!fields || typeof fields !== "object" || Array.isArray(fields)) throw new HttpError(400, "fields attendu");
+    const signers = this.signersOf(docId);
+    const updates: Array<[string | null, string]> = [];
+    for (const [signerId, value] of Object.entries(fields as Record<string, unknown>)) {
+      const s = signers.find((x) => x.id === signerId);
+      if (!s) throw new HttpError(400, "Signataire inconnu");
+      const field = value == null ? null : parseField(value);
+      if (value != null && !field) throw new HttpError(400, "Emplacement de signature invalide");
+      const next = field ? JSON.stringify(field) : null;
+      if (next === s.field_json) continue; // idempotent: no write when nothing changes
+      if (s.signed_at) throw new HttpError(409, `${s.name || s.email} a déjà signé : son emplacement ne peut plus changer`);
+      updates.push([next, s.id]);
+    }
+    this.db.transaction(() => {
+      for (const [json, id] of updates) this.db.run("UPDATE signers SET field_json = ? WHERE id = ?", json, id);
+    });
+    return this.documentView(doc);
   }
 
   // ---------- signer side ----------
@@ -468,12 +503,14 @@ export class Service {
   async signedPdf(docId: string): Promise<Uint8Array> {
     const doc = this.getDocument(docId);
     const v = this.verify(docId);
+    const signers = this.signersOf(docId);
     const entries: SignatureEntry[] = [];
     const manifest: Manifest = { version: 1, tool: this.cfg.brand.name, documentId: doc.id, title: doc.title, sha256: doc.sha256, verifyUrl: `${this.cfg.publicBaseUrl}/verify/${doc.id}`, signatures: [] };
     for (const s of v.signatures) {
       if (!s.signed) continue;
       const key = this.db.get<SigningKey>("SELECT * FROM signing_keys WHERE fingerprint = ?", s.keyFingerprint)!;
-      entries.push({ name: s.name || s.email, email: s.email, signedAt: s.signedAt, keyFingerprint: s.keyFingerprint, signatureB64: s.signature, signaturePng: key.signature_png });
+      const row = signers.find((x) => x.email === s.email);
+      entries.push({ name: s.name || s.email, email: s.email, signedAt: s.signedAt, keyFingerprint: s.keyFingerprint, signatureB64: s.signature, signaturePng: key.signature_png, field: row ? fieldOf(row) : null });
       manifest.signatures.push({ name: s.name || s.email, email: s.email, signedAt: s.signedAt, keyFingerprint: s.keyFingerprint, signatureB64: s.signature, payload: s.payload });
     }
     return renderSignedPdf(fs.readFileSync(doc.file_path), manifest, entries, this.cfg.brand);

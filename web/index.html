@@ -106,6 +106,12 @@
         <label>Signataires</label>
         <div id="signer-rows"></div>
         <div class="row mt"><button type="button" id="add-signer" class="ghost">Ajouter un signataire</button></div>
+        <div id="fields-wrap" class="fields-wrap hidden">
+          <div class="row space"><label style="margin:0">Emplacement des signatures</label><button type="button" id="fields-suggest" class="ghost small">Détecter « Signature »</button></div>
+          <p id="fields-hint" class="muted fields-hint"></p>
+          <div id="fields-legend" class="fp-legend"></div>
+          <div id="fields-stage" class="fields-stage"></div>
+        </div>
         <div id="create-notice" class="notice hidden mt"></div>
         <div class="row mt space">
           <small class="muted">Chaque signataire recevra un lien personnel par e-mail et, si un numéro est fourni, par WhatsApp.</small>
@@ -135,6 +141,17 @@
           <span id="d-status" class="pill pending">En cours</span>
         </div>
         <ul id="d-signers" class="signers"></ul>
+        <div id="d-fields" class="d-fields hidden">
+          <div class="row space"><strong>Emplacement des signatures</strong><button type="button" id="d-fields-edit" class="ghost small">Placer les signatures</button></div>
+          <p id="d-fields-summary" class="muted" style="margin:6px 0 0"></p>
+          <div id="d-fields-editor" class="hidden">
+            <p class="muted fields-hint">Cliquez sur un nom puis sur la page pour placer sa signature ; glissez la zone pour l'ajuster.</p>
+            <div class="row space"><div id="d-fields-legend" class="fp-legend"></div><button type="button" id="d-fields-suggest" class="ghost small">Détecter « Signature »</button></div>
+            <div id="d-fields-stage" class="fields-stage"></div>
+            <div id="d-fields-notice" class="notice hidden mt"></div>
+            <div class="row mt"><button type="button" id="d-fields-save" class="primary" disabled>Enregistrer</button><button type="button" id="d-fields-cancel" class="ghost">Annuler</button></div>
+          </div>
+        </div>
       </div>
       <aside>
         <div class="notice info">
