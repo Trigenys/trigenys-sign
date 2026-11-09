@@ -114,3 +114,9 @@
 - Décision reuse-first : Build (≈60 lignes) plutôt que `<datalist>` natif, qui ne peut pas remplir les autres champs et dont le rendu dépend du navigateur.
 - Preuves : `npm run check` vert, tests 17/17 (nouveau test contacts), E2E Playwright `combo.mjs` (scratchpad) : sélection clavier et clic, trois champs remplis, zéro erreur console, captures `g-combo-*.png`.
 - Non déployé sur le VPS (même commande que l'entrée précédente, sans nouvelle variable d'environnement).
+
+## 2026-11-09 12:17 — Déploiement VPS du carnet de signataires
+
+- Déployé avec accord (git pull → 3d725c5, `docker compose up -d --build`), conteneur `trigenys-sign-sign-1` redémarré. Live : `/` 200, `/static/app.js` 200 avec la combobox, `/api/contacts` 401 sans session (attendu).
+- Aucune variable d'environnement ajoutée. Rien en attente côté code.
+- Reste côté utilisateur : test WhatsApp réel, rendu sur vrai téléphone (Safari iOS).
