@@ -50,7 +50,7 @@ Le brouillon (titre, signataires, PDF) est enregistré dans l'IndexedDB du navig
 
 ### Emplacement des signatures
 
-Dès qu’un PDF est choisi, ses pages s’affichent sous les signataires avec une zone par personne (`web/fields.js`). Les mentions « Signature » du texte du PDF sont détectées (couche texte pdf.js) et proposent un emplacement : sous le libellé quand plusieurs colonnes partagent la ligne, à droite sinon. Chaque zone se déplace et se redimensionne ; « Détecter « Signature » » relance la proposition. Les zones sont stockées en fractions de page (`{page, x, y, w, h}`, origine en haut à gauche, `signers.field_json`) et restent modifiables depuis la fiche du document (`PUT /api/documents/:id/fields`) tant que personne n’a signé. Dans le PDF final, la signature est incrustée dans sa zone (rotation de page gérée) ; un signataire sans zone n’apparaît que sur la feuille de signatures, toujours annexée.
+Dès qu’un PDF est choisi, ses pages s’affichent sous les signataires avec une zone par personne (`web/fields.js`). Les mentions « Signature » du texte du PDF sont détectées (couche texte pdf.js) et proposent un emplacement : sous le libellé quand plusieurs colonnes partagent la ligne, à droite sinon. Chaque zone se déplace et se redimensionne ; « Détecter « Signature » » relance la proposition. Les zones sont stockées en fractions de page (`{page, x, y, w, h}`, origine en haut à gauche, `signers.field_json`) et restent modifiables depuis la fiche du document (`PUT /api/documents/:id/fields`) à tout moment, y compris après signature (le PDF final est généré au téléchargement). Dans le PDF final, la signature est incrustée dans sa zone (rotation de page gérée) ; un signataire sans zone n’apparaît que sur la feuille de signatures, toujours annexée.
 
 ## Page de signature
 
@@ -84,7 +84,7 @@ Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 | GET/POST | `/api/me` | Profil (nom, WhatsApp) |
 | GET/POST | `/api/documents` | Liste / création (corps PDF brut + en-tête `X-Document-Meta` base64 `{title, signers[]}`) |
 | GET | `/api/documents/:id` | Détail et décompte (`signers[].field`) |
-| PUT | `/api/documents/:id/fields` | Emplacements `{fields: {signerId: {page,x,y,w,h} | null}}` (émetteur ; 409 pour un signataire ayant déjà signé) |
+| PUT | `/api/documents/:id/fields` | Emplacements `{fields: {signerId: {page,x,y,w,h} | null}}` (émetteur ; modifiable même après signature, le PDF final étant généré au téléchargement) |
 | GET | `/api/contacts?q=` | Carnet de signataires de l'émetteur (personnes déjà sollicitées, plus récentes d'abord ; filtre nom/e-mail) |
 | GET | `/api/documents/:id/original.pdf` | Original (émetteur ou signataire) |
 | GET | `/api/documents/:id/signed.pdf` | PDF final avec feuille de signatures et manifeste JSON attaché |

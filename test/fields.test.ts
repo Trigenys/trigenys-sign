@@ -80,11 +80,12 @@ test("fields are stored at creation, editable by the owner until a signature exi
   assert.deepEqual(updated.signers[1]!.field, bobField);
   assert.deepEqual(updated.signers[0]!.field, FIELD, "untouched signers keep their field");
 
-  // Alice signs: her field is frozen, Bob's can still move; a no-op on Alice is still accepted.
+  // Alice signs: zones stay editable (the final PDF is rendered on download).
   const aliceToken = linkToken(firstLink(notifier.emails.find((e) => e.msg.recipient === "alice@trigenys.com")!.msg.text));
   await signAs(svc, aliceToken);
-  rejects(() => svc.setFields(owner, doc.id, { [alice!.id]: null }), 409, /déjà signé/);
+  assert.equal(svc.setFields(owner, doc.id, { [alice!.id]: null }).signers[0]!.field, null, "a signed signer's zone can be cleared");
   svc.setFields(owner, doc.id, { [alice!.id]: FIELD, [bob!.id]: { ...bobField, x: 0.6 } });
+  assert.deepEqual(svc.documentView(doc).signers[0]!.field, FIELD, "and set again");
 
   // Final PDF: original page count + signatures sheet; Alice's image sits on page 1, the sheet has its own copy.
   const out = await svc.signedPdf(doc.id);

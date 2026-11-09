@@ -164,3 +164,8 @@
 
 - e468274 poussé et déployé sur le VPS (push et ssh via le panneau Terminal, le mode auto refusait depuis le shell). `app.js` prod contient le correctif, site 200.
 - Prochaine étape utilisateur : fiche « Contrat de Prestation Tiffany Aka’a » → « Placer les signatures » → 2 zones → enregistrer → signature des 2 restants. PWA toujours ouverte.
+
+## 2026-11-09 14:18 — Verrou post-signature levé sur les zones
+
+- Question utilisateur : l’incrustation se fait au téléchargement (`signed.pdf` généré à la demande), pas à la signature. Le verrou 409 empêchait de placer la zone d’Ibrahim (déjà signé). Levé : `setFields` accepte tout signataire, la fiche affiche tous les signataires, note explicative si une signature existe. Test adapté (19/19), Playwright : 1 signé → 3 zones, PUT 200, PDF final 3 images.
+- Déploiement dans la foulée via le panneau Terminal. Test réel utilisateur ensuite.

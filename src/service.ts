@@ -232,7 +232,8 @@ export class Service {
       if (value != null && !field) throw new HttpError(400, "Emplacement de signature invalide");
       const next = field ? JSON.stringify(field) : null;
       if (next === s.field_json) continue; // idempotent: no write when nothing changes
-      if (s.signed_at) throw new HttpError(409, `${s.name || s.email} a déjà signé : son emplacement ne peut plus changer`);
+      // Zones stay editable after signing: the signature seals the original file hash, and the final PDF is
+      // rendered on download, so moving a zone only changes where an existing signature image is drawn.
       updates.push([next, s.id]);
     }
     this.db.transaction(() => {
