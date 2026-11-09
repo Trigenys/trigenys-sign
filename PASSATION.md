@@ -43,3 +43,8 @@
 - Dernière notification en base VPS : `login` e-mail → `rejected`, `HTTP 404` (projet `trigenys-sign` encore inconnu du Worker Notify : PR #62 toujours OPEN, non déployée).
 - `src/notify.ts` : log console (destinataire masqué, statut HTTP ou erreur réseau) sur refus et échec réseau. Tests 11/11, commit `Log refused and failed Notify dispatches with masked recipient`, poussé, VPS reconstruit (`/api/config` 200).
 - Reste : attendre la session Notify (merge #62, projet déclaré, secrets, deploy), puis test de bout en bout réel ; supprimer `C:	mp	rigenys-sign-notify-keys.env`.
+
+## 2026-11-09 09:54 — PR Notify #62 et #63 fusionnées
+
+- Merge autorisé par le commanditaire (« j'autorise ») et exécuté ici : #62 (route whatsapp-direct) et #63 (projet trigenys-sign, limites 50/h e-mail, 5/h WhatsApp) sont MERGED.
+- Suite (secrets, migration D1 0005, deploy Worker, test 202) confiée à la session Notify avec l'autorisation transmise ; en attente de son rapport. Puis test réel sur sign.trigenys.com.
