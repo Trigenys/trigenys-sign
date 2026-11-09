@@ -127,3 +127,8 @@
 - Livré : `web/draft.js` (IndexedDB `trigenys-sign-drafts`, clé = e-mail du compte, PDF en Blob) ; `web/app.js` : `readForm/persistDraft` débouncé 400 ms sur input, ajout/retrait de signataire, changement de pays, choix/retrait de fichier ; `restoreDraft()` à l'ouverture de `#new` ; vidage à l'envoi réussi et via « Vider le brouillon » ; « Annuler » conserve. Ligne « Brouillon enregistré dans ce navigateur à HH:MM » sous le titre.
 - Preuves : check vert, tests 17/17, E2E Playwright `draft.mjs` (scratchpad) : saisie → reload → tout restauré (titre, 2 signataires, WhatsApp, PDF) ; Annuler conserve ; Vider efface et survit au reload ; envoi réussi vide ; zéro erreur console. Capture `g-draft-restored.png`.
 - Déploiement VPS en cours dans la foulée (accord donné pour le carnet ; même commande).
+
+## 2026-11-09 12:40 — Déploiement VPS du brouillon persistant
+
+- Déployé avec accord explicite (git pull → a03e997, `docker compose up -d --build`). Live : `/`, `/static/draft.js`, `/static/app.js` (avec restoreDraft) en 200, conteneur relancé.
+- Rien en attente côté code. Reste côté utilisateur : test WhatsApp réel, rendu sur vrai téléphone (Safari iOS).
