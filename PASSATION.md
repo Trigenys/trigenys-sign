@@ -19,3 +19,11 @@
 
 - Trigenys/trigenys-notify PR #62 (route `POST /v1/dispatch/{project}/whatsapp-direct`, migration 0005, 97 tests verts). Ni fusionnée ni déployée ; variables wrangler ajoutées mais désactivées.
 - Prochaine étape : revue + merge + `wrangler deploy` côté Notify, puis renseigner `NOTIFY_WHATSAPP_DIRECT_INGEST_KEY` et `NOTIFY_EMAIL_INGEST_KEY` dans le `.env` de trigenys-sign au déploiement VPS.
+
+##  — Déployé sur le VPS
+
+- `~/trigenys-sign` sur le VPS, conteneur `trigenys-sign-sign-1` healthy, port hôte 8791 (8790 pris par loveink-mailer), `.env` chmod 600 avec clés Notify générées.
+- Caddy : `/etc/caddy/sites/trigenys-sign.caddy` → 127.0.0.1:8791, rechargé. Certificat TLS en attente du DNS.
+- DNS : `sign.trigenys.com` pointe actuellement vers 15.197.162.184 (autre IP) ; à basculer vers l IP du VPS.
+- Notify : PR #62 NON fusionnée ni déployée (action refusée en auto mode). Les clés à poser en secrets Worker (`EMAIL_TRIGENYS_SIGN_INGEST_KEY`, `WHATSAPP_DIRECT_TRIGENYS_SIGN_INGEST_KEY`) sont dans `C:	mp	rigenys-sign-notify-keys.env` (local, à supprimer après usage). Sans elles, Notify renverra 401 et les notifications échoueront.
+- Prochaine étape : merge + deploy Notify + projet `trigenys-sign` dans `EMAIL_PROJECTS_JSON`/`WHATSAPP_DIRECT_PROJECTS_JSON`, DNS, puis test réel de bout en bout sur https://sign.trigenys.com.
