@@ -132,3 +132,9 @@
 
 - Déployé avec accord explicite (git pull → a03e997, `docker compose up -d --build`). Live : `/`, `/static/draft.js`, `/static/app.js` (avec restoreDraft) en 200, conteneur relancé.
 - Rien en attente côté code. Reste côté utilisateur : test WhatsApp réel, rendu sur vrai téléphone (Safari iOS).
+
+## 2026-11-09 12:57 — Relais téléphone : secret de claim idempotent
+
+- Bug vu en prod : « Ouvrez d'abord le code depuis votre téléphone » après Envoyer, alors que le code avait bien été ouvert (base : claim posé à 11:48:48). Cause : un second chargement de `/h/<code>` régénérait le secret et invalidait le premier onglet.
+- Correctif (2232036) : `claimHandoff(code, existing)` garde le secret si le téléphone le représente ; `handoff.js` le stocke dans `localStorage` (`handoff-claim:<code>`) et le purge après envoi ; message 403 explicite (recharger). Test ajouté dans `test/handoff.test.ts` (17/17 verts), route vérifiée en HTTP.
+- Non déployé : attend l'accord explicite. PWA toujours en attente de réponse.
