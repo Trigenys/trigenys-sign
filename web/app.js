@@ -499,9 +499,12 @@ function renderDetailFields(d) {
     : placed === d.signers.length
       ? "Chaque signature est incrustée dans le document à l'emplacement prévu, en plus de la feuille annexée."
       : `${placed} signature${placed > 1 ? "s" : ""} sur ${d.signers.length} incrustée${placed > 1 ? "s" : ""} dans le document ; les autres n'apparaissent que sur la feuille annexée.`;
-  const editable = d.signed === 0;
+  const pending = d.signers.filter((s) => !s.signedAt);
+  const editable = pending.length > 0;
   const editBtn = $("d-fields-edit");
   editBtn.textContent = placed ? "Modifier les emplacements" : "Placer les signatures";
+  const lockedNote = d.signed > 0 && editable ? " Les signataires ayant déjà signé n’apparaissent que sur la feuille annexée." : "";
+  $("d-fields-summary").textContent += lockedNote;
   editBtn.classList.toggle("hidden", !editable);
   $("d-fields-editor").classList.add("hidden");
   $("d-fields-notice").classList.add("hidden");
@@ -516,8 +519,9 @@ function renderDetailFields(d) {
       detailPlacerDoc = d.id;
       await detailPlacer.load({ url: `/api/documents/${d.id}/original.pdf` });
     }
-    detailPlacer.setSigners(d.signers.map((s) => ({ key: s.id, name: s.name || s.email })));
-    detailPlacer.setFields(Object.fromEntries(d.signers.map((s) => [s.id, s.field])));
+    // Signed signers are locked server side (409): only the pending ones are placeable.
+    detailPlacer.setSigners(pending.map((s) => ({ key: s.id, name: s.name || s.email })));
+    detailPlacer.setFields(Object.fromEntries(pending.map((s) => [s.id, s.field])));
     renderLegend($("d-fields-legend"), detailPlacer);
     $("d-fields-save").disabled = true;
   };

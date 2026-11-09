@@ -153,3 +153,9 @@
 
 - Déployé sur le VPS (61bd0c7, `git pull` + `docker compose up -d --build`) : relais téléphone (2232036) et zones de signature. Site 200, `fields.js` servi, migration `field_json` appliquée.
 - Reste : test réel QR/WhatsApp côté utilisateur ; question PWA ouverte.
+
+## 2026-11-09 13:32 — Fiche document : placement pour les signataires restants
+
+- La fiche autorisait le placement seulement si personne n’avait signé ; or le document prod « Contrat de Prestation Tiffany Aka’a » a 1 signature sur 3. Le bouton est maintenant visible tant qu’un signataire reste, seuls les non-signés sont placables (le serveur verrouille déjà en 409), note dans le résumé.
+- Vérifié : Playwright (1 signé → 2 zones, PUT 200, PDF final 2 images), 19/19 tests.
+- Test réel à faire par l’utilisateur sur ce document : « Placer les signatures » puis signature des 2 restants.
