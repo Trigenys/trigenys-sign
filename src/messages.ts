@@ -9,10 +9,10 @@ function layout(cfg: Config, title: string, bodyHtml: string, cta?: { href: stri
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="560" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden">
 <tr><td style="background:${navy};padding:18px 28px;color:#fff;font-weight:bold;font-size:16px">${esc(name)}</td></tr>
-<tr><td style="padding:28px"><h1 style="margin:0 0 16px;font-size:20px;color:${navy}">${esc(title)}</h1>${bodyHtml}
-${cta ? `<p style="margin:28px 0 8px"><a href="${cta.href}" style="background:${orange};color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">${esc(cta.label)}</a></p><p style="font-size:12px;color:#666">Ou copiez ce lien : <a href="${cta.href}" style="color:${navy}">${cta.href}</a></p>` : ""}
+<tr><td style="padding:28px;color:#1c1c1c;font-size:15px;line-height:1.5"><h1 style="margin:0 0 16px;font-size:20px;color:${navy}">${esc(title)}</h1><div style="color:#1c1c1c">${bodyHtml}</div>
+${cta ? `<p style="margin:28px 0 8px"><a href="${cta.href}" style="background:${orange};color:#ffffff !important;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">${esc(cta.label)}</a></p><p style="font-size:12px;color:#555">Ou copiez ce lien : <a href="${cta.href}" style="color:${navy}">${cta.href}</a></p>` : ""}
 </td></tr>
-<tr><td style="padding:14px 28px;font-size:11px;color:#777;background:#fafaf7">Ce lien est personnel. Ne le transférez pas. ${esc(name)} — Trigenys Group.</td></tr>
+<tr><td style="padding:14px 28px;font-size:11px;color:#555;background:#fafaf7">Ce lien est personnel. Ne le transférez pas. ${esc(name)} — Trigenys Group.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
