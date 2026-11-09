@@ -88,3 +88,8 @@
 ## 2026-11-09 11:05 — Retouches UI en cours
 
 - Demandes : avatar/initiales de la personne connectée dans la navbar ; import PDF en zone glisser-déposer dynamique ; champ WhatsApp avec dropdown drapeaux + indicatif (profil et lignes signataires). Choix reuse-first : intl-tel-input via cdnjs. Déjà déployé : refonte visuelle (commit « Redesign the web UI »). Prochaine étape : implémenter dans web/, captures, tests, déployer.
+
+## 2026-11-09 11:14 — Retouches UI livrées, nouvelle direction demandée
+
+- Livré et déployé (commit bf05e7b) : avatar initiales + menu compte dans la navbar ; import PDF en zone glisser-déposer (contrôle entête %PDF-, taille, Remplacer/Retirer, titre prérempli) ; champs WhatsApp avec drapeaux + indicatif (intl-tel-input 25.11.2 via jsdelivr + SRI, libellés FR, sortie E.164). Tests 11/11, captures Playwright OK, zéro erreur console.
+- Nouvelle demande utilisateur : garder les couleurs mais design plus « Apple-like », animations partout ; aperçu du document à signer toujours visible ; enregistrement de sa signature ; sur ordinateur, QR code pour ouvrir la page de signature/enrôlement sur son téléphone ; sur téléphone, signer directement. Prochaine étape : plan architecte puis implémentation (web/sign.html, web/sign.js, styles.css ; QR code généré côté client ou serveur sans dépendance lourde).
