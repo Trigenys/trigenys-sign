@@ -1,0 +1,16 @@
+services:
+  sign:
+    build: .
+    image: trigenys-sign:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "8790"
+      DATA_DIR: /data
+    ports:
+      - "127.0.0.1:8790:8790"
+    volumes:
+      - sign-data:/data
+
+volumes:
+  sign-data:

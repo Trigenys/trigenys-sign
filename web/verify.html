@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérification · Trigenys Sign</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="dot"></span><span data-brand-name>Trigenys Sign</span></a>
+</header>
+<main>
+  <div id="error" class="notice err hidden"></div>
+  <div id="app" class="hidden" style="max-width:820px;margin:0 auto">
+    <div class="card accent">
+      <div class="row space">
+        <h1 id="title" style="margin:0"></h1>
+        <span id="global" class="pill"></span>
+      </div>
+      <p class="muted">Empreinte SHA-256 attendue : <code id="sha"></code></p>
+      <div id="intact" class="notice"></div>
+      <h2 class="mt">Signatures</h2>
+      <ul id="list" class="signers"></ul>
+      <div class="row mt">
+        <a id="pdf" class="btn ghost" target="_blank" rel="noopener">Télécharger le PDF signé</a>
+      </div>
+    </div>
+    <div class="notice mt" style="font-size:0.8rem">
+      Chaque signature est une signature Ed25519 sur une charge utile canonique contenant l'identifiant du document, son empreinte SHA-256, l'identifiant du signataire, l'empreinte de sa clé publique et l'horodatage. La vérification recalcule l'empreinte du fichier conservé et contrôle chaque signature avec la clé publique enregistrée.
+    </div>
+  </div>
+  <footer><span data-brand-name>Trigenys Sign</span></footer>
+</main>
+<script type="module">
+import { api, bootBrand, esc, fmtDate, notice } from "/static/common.js";
+const $ = (id) => document.getElementById(id);
+const id = location.pathname.split("/").pop();
+bootBrand();
+try {
+  const r = await api(`/api/verify/${id}`);
+  $("app").classList.remove("hidden");
+  $("title").textContent = r.document.title;
+  $("sha").textContent = r.document.sha256;
+  $("pdf").href = `/api/documents/${r.document.id}/signed.pdf`;
+  const g = $("global");
+  const signed = r.signatures.filter((s) => s.signed).length;
+  if (!r.fileIntact) { g.className = "pill err"; g.textContent = "Fichier altéré"; }
+  else if (r.allValid && r.document.status === "completed") { g.className = "pill ok"; g.textContent = "Toutes les signatures valides"; }
+  else if (r.signatures.some((s) => s.signed && !s.valid)) { g.className = "pill err"; g.textContent = "Signature invalide détectée"; }
+  else { g.className = "pill pending"; g.textContent = `${signed}/${r.signatures.length} signé${signed > 1 ? "s" : ""}`; }
+  notice($("intact"), r.fileIntact ? "ok" : "err", r.fileIntact ? "Le fichier conservé correspond à l'empreinte scellée." : "Le fichier conservé ne correspond plus à l'empreinte : les signatures ne sont plus opposables.");
+  $("list").innerHTML = r.signatures.map((s) => `<li>
+    <div><div class="name">${esc(s.name || s.email)}</div><div class="mail">${esc(s.email)}${s.keyFingerprint ? ` · clé ${esc(s.keyFingerprint.slice(0, 16))}…` : ""}</div></div>
+    ${!s.signed ? '<span class="pill neutral">En attente</span>' : s.valid ? `<span class="pill ok">Valide · ${fmtDate(s.signedAt)}</span>` : '<span class="pill err">Invalide</span>'}
+  </li>`).join("");
+} catch (err) {
+  notice($("error"), "err", esc(err.message));
+}
+</script>
+</body>
+</html>

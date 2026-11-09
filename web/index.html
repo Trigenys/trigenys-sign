@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trigenys Sign</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="dot"></span><span data-brand-name>Trigenys Sign</span></a>
+  <div class="who" id="who"></div>
+</header>
+
+<main>
+  <!-- Login -->
+  <section id="login" class="hidden">
+    <div class="grid two">
+      <div>
+        <h1>Faites signer vos documents en quelques minutes.</h1>
+        <p class="muted">Importez un PDF, désignez les signataires : chacun reçoit un lien par e-mail et WhatsApp, signe avec sa clé personnelle, et vous suivez le décompte en temps réel.</p>
+        <ul class="muted" style="line-height:1.9">
+          <li>Signature électronique avec clé cryptographique Ed25519 générée sur l'appareil du signataire.</li>
+          <li>Empreinte SHA-256 du document scellée dans chaque signature.</li>
+          <li>Page de vérification publique et PDF final avec feuille de signatures.</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h2>Connexion</h2>
+        <p class="muted">Un lien de connexion vous est envoyé par e-mail. Pas de mot de passe.</p>
+        <form id="login-form">
+          <label for="login-email">Adresse e-mail professionnelle</label>
+          <input id="login-email" type="email" required placeholder="prenom@trigenys.com" autocomplete="email">
+          <div class="row mt"><button type="submit" class="primary">Recevoir le lien</button></div>
+        </form>
+        <div id="login-notice" class="notice hidden mt"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dash" class="hidden">
+    <div class="grid doc">
+      <div>
+        <div class="row space">
+          <h1 style="margin:0">Mes documents</h1>
+          <button id="new-doc" class="primary">+ Nouveau document</button>
+        </div>
+        <div id="doc-list" class="doc-list mt"></div>
+        <p id="doc-empty" class="muted hidden">Aucun document pour le moment. Créez-en un pour commencer.</p>
+      </div>
+      <aside>
+        <div class="card" id="profile-card">
+          <h2>Mon profil</h2>
+          <p class="muted" style="margin:0 0 6px">Renseignez votre WhatsApp pour recevoir le décompte des signatures.</p>
+          <form id="profile-form">
+            <label for="p-name">Nom affiché</label>
+            <input id="p-name" type="text" placeholder="Votre nom">
+            <label for="p-phone">WhatsApp (format international)</label>
+            <input id="p-phone" type="tel" placeholder="+2376XXXXXXXX">
+            <div class="row mt"><button type="submit" class="ghost">Enregistrer</button><span id="profile-saved" class="pill ok hidden">Enregistré</span></div>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- New document -->
+  <section id="create" class="hidden">
+    <div class="card accent" style="max-width:820px;margin:0 auto">
+      <div class="row space"><h1 style="margin:0">Nouveau document</h1><button id="create-cancel" class="ghost">Annuler</button></div>
+      <form id="create-form">
+        <label for="c-title">Titre</label>
+        <input id="c-title" type="text" required placeholder="Contrat de prestation – Novembre 2026">
+        <label for="c-file">Fichier PDF</label>
+        <input id="c-file" type="file" accept="application/pdf" required>
+        <label>Signataires</label>
+        <div id="signer-rows"></div>
+        <div class="row mt"><button type="button" id="add-signer" class="ghost">+ Ajouter un signataire</button></div>
+        <div id="create-notice" class="notice hidden mt"></div>
+        <div class="row mt space">
+          <small class="muted">Chaque signataire recevra un lien personnel par e-mail et, si un numéro est fourni, par WhatsApp.</small>
+          <button type="submit" class="primary">Envoyer pour signature</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Document detail -->
+  <section id="detail" class="hidden">
+    <div class="row space">
+      <button id="detail-back" class="ghost">← Retour</button>
+      <div class="row">
+        <a id="detail-original" class="btn ghost" target="_blank" rel="noopener">Original</a>
+        <a id="detail-signed" class="btn ghost" target="_blank" rel="noopener">PDF signé</a>
+        <a id="detail-verify" class="btn" target="_blank" rel="noopener">Vérifier</a>
+      </div>
+    </div>
+    <div class="grid doc mt">
+      <div class="card">
+        <h1 id="d-title"></h1>
+        <p class="muted" style="margin:0">Empreinte SHA-256 : <code id="d-sha"></code></p>
+        <div class="progress"><span id="d-bar" style="width:0%"></span></div>
+        <div class="row space mt">
+          <div class="counter"><span id="d-signed">0</span>/<span id="d-total">0</span><small>signatures recueillies</small></div>
+          <span id="d-status" class="pill pending">En cours</span>
+        </div>
+        <ul id="d-signers" class="signers"></ul>
+      </div>
+      <aside>
+        <div class="notice info">
+          <strong>Comment ça marche</strong><br>
+          Chaque signataire ouvre son lien, trace sa signature une fois, et une clé Ed25519 est générée dans son navigateur. Sa signature scelle l'empreinte du document : toute modification ultérieure du fichier l'invalide.
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <footer><span data-brand-name>Trigenys Sign</span> · Signature électronique interne. Les clés privées ne quittent jamais l'appareil du signataire.</footer>
+</main>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

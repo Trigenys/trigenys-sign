@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signer · Trigenys Sign</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="dot"></span><span data-brand-name>Trigenys Sign</span></a>
+  <div class="who" id="who"></div>
+</header>
+
+<main>
+  <div id="error" class="notice err hidden"></div>
+
+  <div id="app" class="grid doc hidden">
+    <div>
+      <h1 id="title"></h1>
+      <p class="muted" style="margin:0 0 12px">Demandé par <strong id="owner"></strong> · <span id="progress"></span></p>
+      <iframe id="pdf" class="pdf-frame" title="Document à signer"></iframe>
+      <p class="muted" style="font-size:0.8rem">Empreinte SHA-256 du document : <code id="sha"></code></p>
+    </div>
+
+    <aside>
+      <!-- Step 1: enroll signature + key -->
+      <div id="enroll" class="card accent hidden">
+        <h2>Votre signature</h2>
+        <p class="muted" style="margin-top:0">Première visite : tracez votre signature. Une clé cryptographique personnelle (Ed25519) sera générée et conservée dans ce navigateur. Elle ne quitte jamais votre appareil.</p>
+        <div class="pad-wrap">
+          <canvas id="pad" class="pad"></canvas>
+          <div class="pad-line"></div>
+          <div class="pad-hint">Signez ici avec la souris ou le doigt</div>
+        </div>
+        <div class="pad-actions">
+          <button id="pad-clear" class="ghost" type="button">Effacer</button>
+          <button id="enroll-save" class="primary" type="button" disabled>Enregistrer ma signature</button>
+        </div>
+        <div id="enroll-notice" class="notice hidden mt"></div>
+      </div>
+
+      <!-- Step 2: sign -->
+      <div id="ready" class="card accent hidden">
+        <h2>Prêt à signer</h2>
+        <div class="key-badge">
+          <img id="key-img" alt="Votre signature">
+          <div><div style="font-weight:600" id="signer-name"></div><div class="fp">Clé <span id="key-fp"></span></div></div>
+        </div>
+        <div id="relink" class="notice warn mt hidden">
+          Ce navigateur ne détient pas la clé associée à votre signature. Pour signer ici, une nouvelle clé sera générée et associée à votre signature existante.
+          <div class="row mt"><button id="relink-btn" class="ghost" type="button">Associer ce navigateur</button></div>
+        </div>
+        <p class="muted mt">En cliquant sur « Signer », vous apposez votre signature au document <strong id="title2"></strong> et scellez son empreinte avec votre clé.</p>
+        <button id="sign-btn" class="primary btn-lg" type="button" style="width:100%;justify-content:center">Signer le document</button>
+        <div id="sign-notice" class="notice hidden mt"></div>
+      </div>
+
+      <!-- Step 3: ceremony / done -->
+      <div id="done" class="card hidden">
+        <div class="ceremony">
+          <canvas id="replay" class="replay"></canvas>
+          <svg class="check" id="check" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/><path d="M19 33 l9 9 l17 -19"/></svg>
+          <div class="stamp" id="stamp">Signé</div>
+          <h2 class="mt">Merci, <span id="done-name"></span></h2>
+          <p class="muted" id="done-text"></p>
+          <div class="row" style="justify-content:center">
+            <a id="done-verify" class="btn ghost" target="_blank" rel="noopener">Vérifier</a>
+            <a id="done-pdf" class="btn" target="_blank" rel="noopener">PDF signé</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice mt" style="font-size:0.8rem">
+        <strong>Valeur de la signature.</strong> Signature électronique au sens simple/avancé : identité attestée par le lien personnel reçu par e-mail/WhatsApp, intégrité garantie par l'empreinte SHA-256 et la clé Ed25519. Ce n'est pas une signature qualifiée.
+      </div>
+    </aside>
+  </div>
+
+  <footer><span data-brand-name>Trigenys Sign</span></footer>
+</main>
+
+<script type="module" src="/static/sign.js"></script>
+</body>
+</html>
