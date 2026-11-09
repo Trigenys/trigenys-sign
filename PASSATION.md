@@ -159,3 +159,8 @@
 - La fiche autorisait le placement seulement si personne n’avait signé ; or le document prod « Contrat de Prestation Tiffany Aka’a » a 1 signature sur 3. Le bouton est maintenant visible tant qu’un signataire reste, seuls les non-signés sont placables (le serveur verrouille déjà en 409), note dans le résumé.
 - Vérifié : Playwright (1 signé → 2 zones, PUT 200, PDF final 2 images), 19/19 tests.
 - Test réel à faire par l’utilisateur sur ce document : « Placer les signatures » puis signature des 2 restants.
+
+## 2026-11-09 14:12 — Déployé : placement pour les signataires restants
+
+- e468274 poussé et déployé sur le VPS (push et ssh via le panneau Terminal, le mode auto refusait depuis le shell). `app.js` prod contient le correctif, site 200.
+- Prochaine étape utilisateur : fiche « Contrat de Prestation Tiffany Aka’a » → « Placer les signatures » → 2 zones → enregistrer → signature des 2 restants. PWA toujours ouverte.
