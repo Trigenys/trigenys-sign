@@ -50,6 +50,41 @@ export interface Manifest {
   sha256: string;
   verifyUrl: string;
   signatures: Array<Omit<SignatureEntry, "signaturePng"> & { payload: unknown }>;
+  /** Independent timestamps of the completed document (OpenTimestamps / RFC 3161). */
+  anchors?: ManifestAnchor[];
+}
+
+export interface ManifestAnchor {
+  kind: "ots" | "tsa";
+  status: "pending" | "confirmed";
+  provider: string | null;
+  digest: string;
+  subject: unknown;
+  anchoredAt: string | null;
+  height: number | null;
+  blockHash: string | null;
+  serial: string | null;
+}
+
+export interface Attachment {
+  name: string;
+  bytes: Uint8Array;
+  mime: string;
+  description: string;
+}
+
+const frDate = (iso: string) => new Date(iso).toLocaleString("fr-FR", { timeZone: "Africa/Douala" });
+
+/** Human lines for the signature sheet; ASCII only (standard Helvetica has no accents beyond Latin-1). */
+export function anchorLines(anchors: ManifestAnchor[]): string[] {
+  return anchors.map((a) => {
+    if (a.kind === "ots") {
+      return a.status === "confirmed" && a.anchoredAt
+        ? `Bitcoin (OpenTimestamps) : horodate le ${frDate(a.anchoredAt)} (Douala), bloc ${a.height}`
+        : `Bitcoin (OpenTimestamps) : soumis aux calendriers, confirmation en attente${a.height ? ` (bloc ${a.height} annonce)` : ""}`;
+    }
+    return `Autorite RFC 3161 (${a.provider ? new URL(a.provider).hostname : "TSA"}) : horodate le ${a.anchoredAt ? frDate(a.anchoredAt) : "?"} (Douala)`;
+  });
 }
 
 function hexToRgb(hex: string) {
@@ -119,6 +154,7 @@ export async function renderSignedPdf(
   manifest: Manifest,
   entries: SignatureEntry[],
   brand: { name: string; navy: string; orange: string },
+  attachments: Attachment[] = [],
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.load(original, { ignoreEncryption: true });
   await placeSignatures(pdf, entries);
@@ -192,6 +228,28 @@ export async function renderSignedPdf(
     y -= blockH + 14;
   }
 
+  if (manifest.anchors && manifest.anchors.length > 0) {
+    const lines = anchorLines(manifest.anchors);
+    const blockH = 30 + lines.length * 12 + 10;
+    if (y - blockH < margin) {
+      page = pdf.addPage(pageSize);
+      header();
+    }
+    page.drawText("Horodatage independant", { x: margin, y, size: 11, font: bold, color: navy });
+    y -= 14;
+    page.drawText(`Empreinte SHA-256 ancree (document + signatures) : ${manifest.anchors[0]!.digest}`, { x: margin, y, size: 7.5, font, color: grey });
+    y -= 14;
+    for (const line of lines) {
+      page.drawText(line, { x: margin, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
+      y -= 12;
+    }
+    page.drawText("Preuves jointes a ce PDF (.ots, .tsr), verifiables avec les outils OpenTimestamps et openssl ts.", { x: margin, y, size: 7.5, font, color: grey });
+    y -= 20;
+  }
+
+  for (const a of attachments) {
+    await pdf.attach(a.bytes, a.name, { mimeType: a.mime, description: a.description, creationDate: new Date(), modificationDate: new Date() });
+  }
   await pdf.attach(Buffer.from(JSON.stringify(manifest, null, 2), "utf8"), "trigenys-sign-manifest.json", {
     mimeType: "application/json",
     description: "Manifeste des signatures Trigenys Sign",

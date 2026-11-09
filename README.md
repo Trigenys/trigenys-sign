@@ -43,6 +43,11 @@ affiché sous le formulaire ; les liens des signataires sont dans les logs serve
 | `NOTIFY_WHATSAPP_DIRECT_INGEST_KEY` | Clé `WHATSAPP_DIRECT_{PROJECT}_INGEST_KEY` côté Notify (route dédiée aux numéros individuels) |
 | `HANDOFF_TTL_MINUTES` | Durée de vie d'un code QR « signer sur mon téléphone » (10 min par défaut) |
 | `DEV_SHOW_LINKS` | Dev uniquement : renvoie le lien magique dans l'API |
+| `ANCHORS_ENABLED` | Horodatage indépendant des documents complets (`1` par défaut, `0` pour couper) |
+| `OTS_CALENDARS` | Calendriers OpenTimestamps (liste séparée par des virgules ; alice, bob, finney par défaut) |
+| `TSA_URLS` | Autorités d'horodatage RFC 3161 essayées dans l'ordre (DigiCert puis freetsa.org par défaut) |
+| `BTC_EXPLORER_URL` | API Esplora pour vérifier le bloc Bitcoin (blockstream.info par défaut) |
+| `ANCHORS_SWEEP_MINUTES` | Période du balayage (relances, rattrapage des anciens documents, confirmation Bitcoin ; 30 min par défaut, 5 minimum) |
 
 ## Formulaire « Nouveau document »
 
@@ -75,6 +80,32 @@ Charge utile signée (JSON canonique, clés triées) :
 
 Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 
+## Horodatage indépendant (OpenTimestamps + RFC 3161)
+
+Dès que la dernière signature est recueillie, l'empreinte SHA-256 du **sujet** (JSON canonique :
+`documentId`, `documentSha256`, et pour chaque signataire `signerId`, `email`, `keyFingerprint`,
+`signedAt`, `signature`) est horodatée hors de la plateforme, de deux façons complémentaires :
+
+- **OpenTimestamps** : l'empreinte (plus un nonce aléatoire) est soumise aux calendriers publics, qui
+  l'agrègent dans une transaction Bitcoin. La preuve `.ots` est d'abord *en attente* ; le balayage
+  périodique la met à niveau (1 à 12 h) puis vérifie la racine de Merkle du bloc via l'API Esplora.
+  Statut `confirmed` = « Horodaté sur Bitcoin le … » (heure du bloc).
+- **RFC 3161** : une autorité d'horodatage signe l'empreinte immédiatement (jeton `.tsr`, réponse
+  complète conservée). La signature CMS de la TSA n'est pas revérifiée côté serveur (pas de pile
+  X.509 embarquée) : le jeton est la preuve, contrôlé sur l'empreinte et le nonce renvoyés.
+
+Les preuves sont jointes au PDF final (`trigenys-sign-preuve.ots`, `.tsr`) avec un bloc « Horodatage
+indépendant » sur la feuille de signatures, et téléchargeables depuis la page publique de vérification.
+Elles se vérifient sans la plateforme : `ots verify` (client OpenTimestamps) et
+`openssl ts -verify -in preuve.tsr -digest <sha256 du sujet> -CAfile <chaîne de la TSA>`.
+
+Mise en œuvre : clients minimaux maison (`src/ots.ts`, `src/tsa.ts`), aucune dépendance ajoutée
+(le paquet npm `opentimestamps` traîne bitcore-lib/request obsolètes ; pkijs est surdimensionné pour
+deux analyseurs DER). Idempotent : une ligne `anchors` par (document, type) ; une preuve en attente ou
+confirmée n'est jamais refaite, un échec est relancé par le balayage. Rétroactif : les documents déjà
+complets sont ancrés par le balayage au prochain démarrage. Rien n'est écrit sur une blockchain hors
+de l'empreinte agrégée ; aucun portefeuille, aucun frais.
+
 ## API
 
 | Méthode | Route | Rôle |
@@ -88,7 +119,9 @@ Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 | GET | `/api/contacts?q=` | Carnet de signataires de l'émetteur (personnes déjà sollicitées, plus récentes d'abord ; filtre nom/e-mail) |
 | GET | `/api/documents/:id/original.pdf` | Original (émetteur ou signataire) |
 | GET | `/api/documents/:id/signed.pdf` | PDF final avec feuille de signatures et manifeste JSON attaché |
-| GET | `/api/verify/:id` | Vérification des signatures |
+| GET | `/api/verify/:id` | Vérification des signatures et état des horodatages (`anchors[]`) |
+| GET | `/api/verify/:id/proof/:kind` | Télécharge la preuve `ots` (`.ots`) ou `tsa` (`.tsr`) |
+| POST | `/api/documents/:id/anchor` | Émetteur : relance l'horodatage manquant/échoué et interroge la confirmation Bitcoin |
 | GET | `/api/sign/:token/context` | Contexte signataire (document, clé active, charge utile) |
 | GET | `/api/sign/:token/status` | `{signedAt, keyFingerprint}` (sondage léger de la page de signature) |
 | POST | `/api/sign/:token/key` | Enregistre `{publicKeyJwk, signaturePng, strokes}` ou `{publicKeyJwk, handoffId}` (tracé reçu du téléphone) |

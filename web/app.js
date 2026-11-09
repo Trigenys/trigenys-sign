@@ -483,9 +483,48 @@ async function loadDetail(id) {
     .join("");
   $("detail-original").href = `/api/documents/${d.id}/original.pdf`;
   renderDetailFields(d);
+  void renderDetailAnchors(d);
   $("detail-signed").href = `/api/documents/${d.id}/signed.pdf`;
   $("detail-signed").classList.toggle("hidden", d.signed === 0);
   $("detail-verify").href = `/verify/${d.id}`;
+}
+
+// ---- Detail: independent timestamps (OpenTimestamps on Bitcoin + RFC 3161 TSA) of a completed document
+function anchorRow(docId, a) {
+  const dl = a.status === "failed" ? "" : `<a class="ghost small" href="/api/verify/${encodeURIComponent(docId)}/proof/${a.kind}">Preuve .${a.kind === "ots" ? "ots" : "tsr"}</a>`;
+  if (a.kind === "ots") {
+    const label = a.status === "confirmed" ? `<span class="pill ok">Horodaté sur Bitcoin le ${fmtDate(a.anchoredAt)}</span>` : a.status === "pending" ? '<span class="pill pending">Confirmation Bitcoin en attente</span>' : '<span class="pill err">Échec</span>';
+    const sub = a.status === "confirmed" ? `bloc ${a.detail.height}` : a.status === "pending" ? `soumis le ${fmtDate(a.createdAt)}${a.detail.height ? ` · bloc ${a.detail.height} annoncé` : ""} · confirmation sous 1 à 12 h` : esc(a.detail.error || "");
+    return `<li><div><div class="name">Bitcoin · OpenTimestamps</div><div class="mail">${sub}</div></div><div class="row">${label}${dl}</div></li>`;
+  }
+  const host = a.provider ? new URL(a.provider).hostname : "";
+  const label = a.status === "confirmed" ? `<span class="pill ok">Horodaté le ${fmtDate(a.anchoredAt)}</span>` : '<span class="pill err">Échec</span>';
+  return `<li><div><div class="name">Autorité d\u2019horodatage RFC 3161</div><div class="mail">${a.status === "confirmed" ? esc(host) : esc(a.detail.error || "")}</div></div><div class="row">${label}${dl}</div></li>`;
+}
+async function renderDetailAnchors(d) {
+  const box = $("d-anchors");
+  box.classList.toggle("hidden", d.status !== "completed");
+  if (d.status !== "completed") return;
+  const list = $("d-anchors-list");
+  const show = (anchors) => {
+    list.innerHTML = anchors.length ? anchors.map((a) => anchorRow(d.id, a)).join("") : '<li><div class="mail">Aucune preuve encore : l\u2019horodatage est lancé automatiquement ; Actualiser le relance.</div></li>';
+  };
+  try {
+    show((await api(`/api/verify/${d.id}`)).anchors || []);
+  } catch (e) {
+    list.innerHTML = `<li><div class="mail">${esc(e.message)}</div></li>`;
+  }
+  const btn = $("d-anchors-refresh");
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try {
+      show(await api(`/api/documents/${d.id}/anchor`, { method: "POST" }));
+    } catch (e) {
+      list.insertAdjacentHTML("beforeend", `<li><div class="mail">${esc(e.message)}</div></li>`);
+    } finally {
+      btn.disabled = false;
+    }
+  };
 }
 
 // ---- Detail: where each signature lands (editable at any time; the final PDF is rendered on download)

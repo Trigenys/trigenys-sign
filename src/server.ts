@@ -105,6 +105,16 @@ export function createServer(cfg: Config, svc: Service): http.Server {
     ctx.res.end(Buffer.from(bytes));
   });
   router.add("GET", "/api/verify/:id", (ctx) => sendJson(ctx.res, 200, svc.verify(ctx.params.id!)));
+  router.add("GET", "/api/verify/:id/proof/:kind", (ctx) => {
+    const kind = ctx.params.kind;
+    if (kind !== "ots" && kind !== "tsa") throw new HttpError(404, "Preuve inconnue");
+    const doc = svc.getDocument(ctx.params.id!);
+    const p = svc.anchors.proof(doc.id, kind);
+    if (!p) throw new HttpError(404, "Aucune preuve disponible pour ce document");
+    ctx.res.writeHead(200, { "content-type": p.mime, "content-length": p.bytes.length, "content-disposition": `attachment; filename="${safeName(doc.title)}-preuve.${p.extension}"` });
+    ctx.res.end(p.bytes);
+  });
+  router.add("POST", "/api/documents/:id/anchor", async (ctx) => sendJson(ctx.res, 200, await svc.anchorNow(requireUser(ctx), ctx.params.id!)));
 
   // Signer side (token in URL; a cookie remembers it so the PDF viewer can load the file)
   router.add("GET", "/api/sign/:token/context", (ctx) => {

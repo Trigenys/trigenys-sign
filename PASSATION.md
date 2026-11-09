@@ -169,3 +169,10 @@
 
 - Question utilisateur : l’incrustation se fait au téléchargement (`signed.pdf` généré à la demande), pas à la signature. Le verrou 409 empêchait de placer la zone d’Ibrahim (déjà signé). Levé : `setFields` accepte tout signataire, la fiche affiche tous les signataires, note explicative si une signature existe. Test adapté (19/19), Playwright : 1 signé → 3 zones, PUT 200, PDF final 3 images.
 - Déploiement dans la foulée via le panneau Terminal. Test réel utilisateur ensuite.
+
+## 2026-11-09 15:13 — Horodatage indépendant (OpenTimestamps + RFC 3161)
+
+- Nouveau : `src/anchors.ts` (table `anchors`, une ligne par document × type, balayage toutes les 30 min : rattrapage rétroactif des documents complets, relance des échecs, mise à niveau des preuves Bitcoin en attente), `src/ots.ts` (client OpenTimestamps maison : stamp vers alice/bob/finney, upgrade, contrôle du bloc via Esplora), `src/tsa.ts` (RFC 3161 en DER à la main ; nonce INTEGER minimal sinon freetsa renvoie « Bad request format »). Décision reuse-first : Build, zéro dépendance (paquet `opentimestamps` obsolète, pkijs trop lourd).
+- Câblage : ancrage lancé à la dernière signature (`Service.sign`), `verify()` expose `anchors[]`, routes `GET /api/verify/:id/proof/:kind` et `POST /api/documents/:id/anchor`, bloc « Horodatage independant » + pièces jointes `.ots`/`.tsr` dans le PDF final, fiche document (bouton Actualiser) et page publique de vérification.
+- Preuves : `npm run check` OK, `npm test` 24/24 (5 tests `test/anchors.test.ts`, réseau simulé), `npm run build` OK, fumée réelle : 3 calendriers OTS OK (bob parfois « fetch failed »), DigiCert OK, freetsa.org injoignable depuis ici → DigiCert mis en premier. E2E Playwright local : document signé → ots pending + tsa confirmed en ~1 s, fiche et page de vérification rendues, preuves téléchargeables, PDF 106 Ko sans erreur console.
+- Non commité au moment de cette entrée ; déploiement VPS en attente d'accord. Premier démarrage prod : le balayage ancrera les documents déjà complets après 15 s. PWA toujours sans réponse.

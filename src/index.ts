@@ -8,6 +8,7 @@ const cfg = loadConfig();
 const db = new Db(cfg.dataDir);
 const svc = new Service(cfg, db, new NotifyClient(cfg, db));
 const server = createServer(cfg, svc);
+svc.anchors.start();
 
 server.listen(cfg.port, () => {
   const mode = cfg.notify.baseUrl ? `Notify ${cfg.notify.baseUrl}` : "notifications en mode console";

@@ -8,6 +8,7 @@ import { E164, type Notifier } from "./notify.js";
 import * as msg from "./messages.js";
 import { parseField, renderSignedPdf, type Manifest, type SignatureEntry, type SignatureField } from "./pdf.js";
 import { qrSvg } from "./qr.js";
+import { Anchors } from "./anchors.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,11 +35,16 @@ export interface SignPayload {
 }
 
 export class Service {
+  readonly anchors: Anchors;
+
   constructor(
     readonly cfg: Config,
     readonly db: Db,
     readonly notifier: Notifier,
-  ) {}
+    anchors?: Anchors,
+  ) {
+    this.anchors = anchors ?? new Anchors(cfg, db);
+  }
 
   // ---------- users & auth ----------
 
@@ -456,6 +462,7 @@ export class Service {
     });
     const view = this.documentView(doc);
     void this.notifyProgress(doc, owner, user, view.remaining, view.total);
+    if (completed) void this.anchors.anchorDocument(doc.id).catch(() => undefined);
     return { signedAt: at, completed, remaining: view.remaining, total: view.total };
   }
 
@@ -494,7 +501,18 @@ export class Service {
       fileIntact: actualSha === doc.sha256,
       allValid: results.every((r) => r.signed && r.valid),
       signatures: results,
+      anchors: this.anchors.view(doc.id),
     };
+  }
+
+  /** Owner-triggered anchoring: (re)submit missing or failed proofs, then poll pending ones. */
+  async anchorNow(owner: User, docId: string) {
+    const doc = this.getDocument(docId);
+    if (doc.owner_id !== owner.id) throw new HttpError(403, "Accès refusé");
+    if (doc.status !== "completed") throw new HttpError(409, "L'horodatage indépendant se fait une fois toutes les signatures recueillies");
+    if (!this.anchors.enabled) throw new HttpError(503, "Horodatage indépendant désactivé (ANCHORS_ENABLED=0)");
+    await this.anchors.anchorDocument(doc.id);
+    return this.anchors.upgrade(doc.id);
   }
 
   originalPdf(docId: string): Buffer {
@@ -506,7 +524,15 @@ export class Service {
     const v = this.verify(docId);
     const signers = this.signersOf(docId);
     const entries: SignatureEntry[] = [];
-    const manifest: Manifest = { version: 1, tool: this.cfg.brand.name, documentId: doc.id, title: doc.title, sha256: doc.sha256, verifyUrl: `${this.cfg.publicBaseUrl}/verify/${doc.id}`, signatures: [] };
+    const anchors = v.anchors.filter((a) => a.status !== "failed");
+    const manifest: Manifest = {
+      version: 1, tool: this.cfg.brand.name, documentId: doc.id, title: doc.title, sha256: doc.sha256, verifyUrl: `${this.cfg.publicBaseUrl}/verify/${doc.id}`, signatures: [],
+      anchors: anchors.map((a) => ({ kind: a.kind, status: a.status as "pending" | "confirmed", provider: a.provider, digest: a.digest, subject: a.subject, anchoredAt: a.anchoredAt, height: a.detail.height ?? null, blockHash: a.detail.blockHash ?? null, serial: a.detail.serial ?? null })),
+    };
+    const attachments = anchors.flatMap((a) => {
+      const p = this.anchors.proof(doc.id, a.kind);
+      return p ? [{ name: `trigenys-sign-preuve.${p.extension}`, bytes: p.bytes, mime: p.mime, description: a.kind === "ots" ? "Preuve OpenTimestamps (Bitcoin)" : "Jeton d'horodatage RFC 3161" }] : [];
+    });
     for (const s of v.signatures) {
       if (!s.signed) continue;
       const key = this.db.get<SigningKey>("SELECT * FROM signing_keys WHERE fingerprint = ?", s.keyFingerprint)!;
@@ -514,6 +540,6 @@ export class Service {
       entries.push({ name: s.name || s.email, email: s.email, signedAt: s.signedAt, keyFingerprint: s.keyFingerprint, signatureB64: s.signature, signaturePng: key.signature_png, field: row ? fieldOf(row) : null });
       manifest.signatures.push({ name: s.name || s.email, email: s.email, signedAt: s.signedAt, keyFingerprint: s.keyFingerprint, signatureB64: s.signature, payload: s.payload });
     }
-    return renderSignedPdf(fs.readFileSync(doc.file_path), manifest, entries, this.cfg.brand);
+    return renderSignedPdf(fs.readFileSync(doc.file_path), manifest, entries, this.cfg.brand, attachments);
   }
 }

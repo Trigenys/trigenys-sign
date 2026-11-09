@@ -16,7 +16,17 @@ export interface Config {
   devShowLinks: boolean;
   /** Lifetime of a phone hand-off code (QR). */
   handoffTtlMinutes: number;
+  /** Independent timestamping of completed documents (OpenTimestamps + RFC 3161). */
+  anchors: {
+    enabled: boolean;
+    calendars: string[];
+    tsaUrls: string[];
+    explorerUrl: string;
+    sweepMinutes: number;
+  };
 }
+
+const list = (v: string) => v.split(",").map((s) => s.trim()).filter(Boolean);
 
 function env(name: string, fallback = ""): string {
   const v = process.env[name];
@@ -54,6 +64,13 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
       },
       devShowLinks: env("DEV_SHOW_LINKS") === "1",
       handoffTtlMinutes: Math.min(60, Math.max(2, Number(env("HANDOFF_TTL_MINUTES", "10")) || 10)),
+      anchors: {
+        enabled: env("ANCHORS_ENABLED", "1") !== "0",
+        calendars: list(env("OTS_CALENDARS", "https://alice.btc.calendar.opentimestamps.org,https://bob.btc.calendar.opentimestamps.org,https://finney.calendar.eternitywall.com")),
+        tsaUrls: list(env("TSA_URLS", "http://timestamp.digicert.com,https://freetsa.org/tsr")),
+        explorerUrl: env("BTC_EXPLORER_URL", "https://blockstream.info/api").replace(/\/$/, ""),
+        sweepMinutes: Math.max(5, Number(env("ANCHORS_SWEEP_MINUTES", "30")) || 30),
+      },
     };
   } finally {
     process.env = prev;

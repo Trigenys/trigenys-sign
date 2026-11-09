@@ -5,6 +5,7 @@ import { loadConfig } from "../src/config.js";
 import { Db } from "../src/db.js";
 import type { DeliveryResult, EmailMessage, Notifier, WhatsAppMessage } from "../src/notify.js";
 import { Service } from "../src/service.js";
+import { Anchors } from "../src/anchors.js";
 
 export class FakeNotifier implements Notifier {
   emails: Array<{ kind: string; key: string; msg: EmailMessage }> = [];
@@ -33,7 +34,9 @@ export function testEnv(overrides: Record<string, string> = {}) {
   const cfg = loadConfig(env);
   const db = new Db(dataDir);
   const notifier = new FakeNotifier();
-  const svc = new Service(cfg, db, notifier);
+  // No network in tests: anchoring attempts fail fast and are recorded as such.
+  const offline: typeof fetch = async () => { throw new Error("réseau désactivé dans les tests"); };
+  const svc = new Service(cfg, db, notifier, new Anchors(cfg, db, offline, { warn() {} }));
   return { cfg, db, notifier, svc, dataDir };
 }
 

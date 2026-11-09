@@ -126,6 +126,22 @@ CREATE TABLE IF NOT EXISTS handoffs (
   cancelled_at TEXT
 );
 CREATE INDEX IF NOT EXISTS handoffs_signer ON handoffs(signer_id, created_at);
+CREATE TABLE IF NOT EXISTS anchors (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL REFERENCES documents(id),
+  kind TEXT NOT NULL,
+  provider TEXT,
+  digest TEXT NOT NULL,
+  subject_json TEXT NOT NULL,
+  proof BLOB,
+  status TEXT NOT NULL,
+  detail_json TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  confirmed_at TEXT,
+  anchored_at TEXT,
+  UNIQUE(document_id, kind)
+);
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   channel TEXT NOT NULL,
@@ -136,6 +152,24 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL
 );
 `;
+
+export type AnchorKind = "ots" | "tsa";
+export type AnchorStatus = "pending" | "confirmed" | "failed";
+export interface Anchor {
+  id: string;
+  document_id: string;
+  kind: AnchorKind;
+  provider: string | null;
+  digest: string;
+  subject_json: string;
+  proof: Uint8Array | null;
+  status: AnchorStatus;
+  detail_json: string | null;
+  created_at: string;
+  updated_at: string;
+  confirmed_at: string | null;
+  anchored_at: string | null;
+}
 
 export class Db {
   readonly sql: DatabaseSync;

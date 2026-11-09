@@ -23,9 +23,16 @@
       <div id="intact" class="notice"></div>
       <h2 class="mt">Signatures</h2>
       <ul id="list" class="signers"></ul>
+      <div id="anchors-box" class="hidden">
+        <h2 class="mt">Horodatage indépendant</h2>
+        <ul id="anchors" class="signers anchors"></ul>
+      </div>
       <div class="row mt">
         <a id="pdf" class="btn ghost" target="_blank" rel="noopener">Télécharger le PDF signé</a>
       </div>
+    </div>
+    <div class="notice mt fine">
+      Une fois toutes les signatures recueillies, l'empreinte SHA-256 du document et de ses signatures est horodatée hors de la plateforme : inscrite dans un bloc Bitcoin via OpenTimestamps et contresignée par une autorité d'horodatage RFC 3161. Les preuves (.ots, .tsr) sont jointes au PDF signé et se vérifient avec les outils standard (<code>ots verify</code>, <code>openssl ts -verify</code>) sans dépendre de cette plateforme.
     </div>
     <div class="notice mt fine">
       Chaque signature est une signature Ed25519 sur une charge utile canonique contenant l'identifiant du document, son empreinte SHA-256, l'identifiant du signataire, l'empreinte de sa clé publique et l'horodatage. La vérification recalcule l'empreinte du fichier conservé et contrôle chaque signature avec la clé publique enregistrée.
@@ -55,6 +62,18 @@ try {
     <div><div class="name">${esc(s.name || s.email)}</div><div class="mail">${esc(s.email)}${s.keyFingerprint ? ` · clé ${esc(s.keyFingerprint.slice(0, 16))}…` : ""}</div></div>
     ${!s.signed ? '<span class="pill neutral">En attente</span>' : s.valid ? `<span class="pill ok">Valide · ${fmtDate(s.signedAt)}</span>` : '<span class="pill err">Invalide</span>'}
   </li>`).join("");
+  const anchors = (r.anchors || []).filter((a) => a.status !== "failed");
+  $("anchors-box").classList.toggle("hidden", anchors.length === 0);
+  $("anchors").innerHTML = anchors.map((a) => {
+    const dl = `<a class="ghost small" href="/api/verify/${encodeURIComponent(r.document.id)}/proof/${a.kind}">Preuve .${a.kind === "ots" ? "ots" : "tsr"}</a>`;
+    if (a.kind === "ots") {
+      const ok = a.status === "confirmed";
+      return `<li><div><div class="name">Bitcoin · OpenTimestamps</div><div class="mail">${ok ? `bloc ${a.detail.height}` : `soumis le ${fmtDate(a.createdAt)} · confirmation sous 1 à 12 h`}</div></div>
+        <div class="row">${ok ? `<span class="pill ok">Horodaté sur Bitcoin le ${fmtDate(a.anchoredAt)}</span>` : '<span class="pill pending">Confirmation Bitcoin en attente</span>'}${dl}</div></li>`;
+    }
+    return `<li><div><div class="name">Autorité d'horodatage RFC 3161</div><div class="mail">${esc(a.provider ? new URL(a.provider).hostname : "")}</div></div>
+      <div class="row"><span class="pill ok">Horodaté le ${fmtDate(a.anchoredAt)}</span>${dl}</div></li>`;
+  }).join("");
 } catch (err) {
   notice($("error"), "err", esc(err.message));
 }
