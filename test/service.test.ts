@@ -110,3 +110,19 @@ test("magic links are single use; foreign domains cannot log in", async () => {
   assert.throws(() => svc.consumeLogin(token), HttpError);
   await assert.rejects(svc.requestLogin("x@gmail.com"), HttpError);
 });
+
+test("contacts: signers already used by the owner, most recent first, filtered, owner excluded", async () => {
+  const { svc } = testEnv();
+  const owner = svc.upsertUser({ email: "owner@trigenys.com", name: "Owner" });
+  const other = svc.upsertUser({ email: "other@trigenys.com" });
+  svc.createDocument(owner, { title: "A", signers: [{ name: "Alice Martin", email: "alice@trigenys.com", phone: "+237670000001" }, { name: "Owner", email: "owner@trigenys.com" }] }, MINIMAL_PDF);
+  await new Promise((r) => setTimeout(r, 5));
+  svc.createDocument(owner, { title: "B", signers: [{ name: "Bob Durand", email: "bob@trigenys.com" }] }, MINIMAL_PDF);
+  svc.createDocument(other, { title: "C", signers: [{ name: "Carl", email: "carl@trigenys.com" }] }, MINIMAL_PDF);
+  const all = svc.listContacts(owner);
+  assert.deepEqual(all.map((c) => c.email), ["bob@trigenys.com", "alice@trigenys.com"]);
+  assert.equal(all[1]!.phone, "+237670000001");
+  assert.deepEqual(svc.listContacts(owner, "ali").map((c) => c.email), ["alice@trigenys.com"]);
+  assert.deepEqual(svc.listContacts(owner, "BOB@").map((c) => c.email), ["bob@trigenys.com"]);
+  assert.deepEqual(svc.listContacts(other).map((c) => c.email), ["carl@trigenys.com"]);
+});

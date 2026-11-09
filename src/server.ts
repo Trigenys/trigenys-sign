@@ -61,6 +61,7 @@ export function createServer(cfg: Config, svc: Service): http.Server {
 
   // Documents (owner)
   router.add("GET", "/api/documents", (ctx) => sendJson(ctx.res, 200, svc.listDocuments(requireUser(ctx))));
+  router.add("GET", "/api/contacts", (ctx) => sendJson(ctx.res, 200, svc.listContacts(requireUser(ctx), ctx.url.searchParams.get("q") ?? "")));
   router.add("POST", "/api/documents", async (ctx) => {
     const owner = requireUser(ctx);
     const meta = ctx.req.headers["x-document-meta"];

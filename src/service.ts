@@ -162,6 +162,18 @@ export class Service {
     return docs.map((d) => this.documentView(d));
   }
 
+  /** Signers the owner has already sent documents to, most recently used first. */
+  listContacts(owner: User, q: unknown = "", limit = 50): Array<{ name: string | null; email: string; phone: string | null; lastUsedAt: string }> {
+    const needle = `%${String(q ?? "").trim().toLowerCase()}%`;
+    return this.db.all(
+      `SELECT u.name, u.email, u.phone, MAX(d.created_at) AS lastUsedAt
+       FROM signers s JOIN documents d ON d.id = s.document_id JOIN users u ON u.id = s.user_id
+       WHERE d.owner_id = ? AND u.id != ? AND (lower(coalesce(u.name, '')) LIKE ? OR lower(u.email) LIKE ?)
+       GROUP BY u.id ORDER BY lastUsedAt DESC LIMIT ?`,
+      owner.id, owner.id, needle, needle, Math.min(Math.max(Number(limit) || 50, 1), 200),
+    );
+  }
+
   getDocument(id: string): Document {
     const d = this.db.get<Document>("SELECT * FROM documents WHERE id = ?", id);
     if (!d) throw new HttpError(404, "Document introuvable");

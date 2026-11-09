@@ -254,6 +254,17 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .signer-row .remove { background: transparent; color: var(--muted); border: 1px solid var(--line-strong); padding: 10px 12px; }
 .signer-row .remove:hover { color: var(--err); border-color: var(--err); background: #fff; }
 @media (max-width: 700px) { .signer-row { grid-template-columns: 1fr; } }
+.combo { position: relative; }
+.combo-list {
+  position: absolute; left: 0; min-width: 100%; width: max-content; max-width: min(460px, 90vw); top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; display: none; z-index: 25;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow); max-height: 280px; overflow: auto;
+}
+.combo.open .combo-list { display: block; animation: menu-in var(--d1) var(--ease); }
+.combo-list li { display: flex; flex-direction: column; gap: 1px; padding: 9px 12px; border-radius: 8px; cursor: pointer; transition: background var(--d1) var(--ease); }
+.combo-list li strong { font-weight: 600; color: var(--ink); font-size: 0.92rem; }
+.combo-list li span { font-size: 0.8rem; color: var(--muted); }
+.combo-list li:hover, .combo-list li.active { background: var(--offwhite); }
+@media (prefers-reduced-motion: reduce) { .combo.open .combo-list { animation: none; } }
 
 .notice { padding: 12px 14px; border-radius: 4px; font-size: 0.9rem; line-height: 1.5; background: #fff; border: 1px solid var(--line); border-left-width: 3px; }
 .notice.info { border-left-color: var(--navy); color: #3F3237; }

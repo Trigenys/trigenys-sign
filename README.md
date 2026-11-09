@@ -76,6 +76,7 @@ Cadre : signature électronique simple/avancée, pas une signature qualifiée.
 | GET/POST | `/api/me` | Profil (nom, WhatsApp) |
 | GET/POST | `/api/documents` | Liste / création (corps PDF brut + en-tête `X-Document-Meta` base64 `{title, signers[]}`) |
 | GET | `/api/documents/:id` | Détail et décompte |
+| GET | `/api/contacts?q=` | Carnet de signataires de l'émetteur (personnes déjà sollicitées, plus récentes d'abord ; filtre nom/e-mail) |
 | GET | `/api/documents/:id/original.pdf` | Original (émetteur ou signataire) |
 | GET | `/api/documents/:id/signed.pdf` | PDF final avec feuille de signatures et manifeste JSON attaché |
 | GET | `/api/verify/:id` | Vérification des signatures |

@@ -146,6 +146,64 @@ $("profile-form").addEventListener("submit", async (e) => {
 });
 
 // ---- Create
+// Signer book: people this account already sent documents to. Loaded once per form opening; filtered client-side.
+let contacts = [];
+let contactsLoaded = null;
+function loadContacts() {
+  contactsLoaded ??= api("/api/contacts").then((list) => (contacts = list)).catch(() => (contacts = []));
+  return contactsLoaded;
+}
+function matchContacts(q) {
+  const n = q.trim().toLowerCase();
+  const hits = n ? contacts.filter((c) => (c.name || "").toLowerCase().includes(n) || c.email.toLowerCase().includes(n)) : contacts;
+  return hits.slice(0, 6);
+}
+function fillRow(row, c) {
+  row.querySelector("[name=name]").value = c.name || "";
+  row.querySelector("[name=email]").value = c.email;
+  const tel = row.querySelector("[name=phone]");
+  const iti = phones.get(tel);
+  if (iti) iti.setNumber(c.phone || "");
+  else tel.value = c.phone || "";
+  tel.classList.remove("is-invalid");
+}
+function combobox(input, row) {
+  const wrap = input.parentElement;
+  wrap.classList.add("combo");
+  const list = document.createElement("ul");
+  list.className = "combo-list";
+  list.setAttribute("role", "listbox");
+  wrap.appendChild(list);
+  input.setAttribute("autocomplete", "off");
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-expanded", "false");
+  let items = [];
+  let active = -1;
+  const close = () => { list.innerHTML = ""; wrap.classList.remove("open"); input.setAttribute("aria-expanded", "false"); active = -1; };
+  const paint = () => [...list.children].forEach((li, i) => li.classList.toggle("active", i === active));
+  const open = () => {
+    items = matchContacts(input.value);
+    if (!items.length) return close();
+    list.innerHTML = items.map((c) => `<li role="option"><strong>${esc(c.name || c.email)}</strong><span>${esc(c.email)}${c.phone ? " · WhatsApp" : ""}</span></li>`).join("");
+    [...list.children].forEach((li, i) => {
+      li.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus so blur does not close first
+      li.addEventListener("click", () => { fillRow(row, items[i]); close(); row.querySelector("[name=email]").blur(); });
+    });
+    wrap.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+    active = -1;
+  };
+  input.addEventListener("focus", () => loadContacts().then(() => document.activeElement === input && open()));
+  input.addEventListener("input", open);
+  input.addEventListener("blur", close);
+  input.addEventListener("keydown", (e) => {
+    if (!wrap.classList.contains("open")) { if (e.key === "ArrowDown") open(); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); active = (active + 1) % items.length; paint(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = (active - 1 + items.length) % items.length; paint(); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); fillRow(row, items[active]); close(); }
+    else if (e.key === "Escape") close();
+  });
+}
 function signerRow(values = {}) {
   const row = document.createElement("div");
   row.className = "signer-row";
@@ -159,6 +217,8 @@ function signerRow(values = {}) {
   });
   $("signer-rows").appendChild(row);
   phoneField(row.querySelector("[name=phone]"), values.phone || "");
+  combobox(row.querySelector("[name=name]"), row);
+  combobox(row.querySelector("[name=email]"), row);
 }
 $("add-signer").addEventListener("click", () => signerRow());
 
@@ -257,6 +317,7 @@ $("create-form").addEventListener("submit", async (e) => {
     $("create-form").reset();
     await setFile(null);
     $("signer-rows").innerHTML = "";
+    contactsLoaded = null;
     location.hash = `doc=${doc.id}`;
   } catch (err) {
     notice($("create-notice"), "err", esc(err.message));

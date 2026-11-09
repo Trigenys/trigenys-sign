@@ -106,3 +106,11 @@
 - Déployé par l'utilisateur (git pull bf05e7b..b878fa0, `docker compose up -d --build`) ; `HANDOFF_TTL_MINUTES=10` présent dans `.env`. Conteneur `trigenys-sign-sign-1` healthy.
 - Vérifié en live : `/`, `/static/sign.js`, `/static/handoff.js`, `/static/vendor/pdfjs/pdf.min.mjs` (474 Ko), `/h/<code>` répondent 200.
 - Reste : test WhatsApp réel de bout en bout ; rendu sur vrai téléphone (Safari iOS : `touch-action` du pad, hauteur de la feuille).
+
+## 2026-11-09 12:14 — Carnet de signataires (combobox nom / e-mail)
+
+- Demande : mémoriser nom + e-mail + WhatsApp d'un signataire pour le re-choisir la fois suivante.
+- Livré : `GET /api/contacts?q=` (`Service.listContacts` : signataires des documents de l'émetteur, dérivés des tables `signers`/`users`/`documents`, sans nouvelle table → rétroactif sur les documents existants, émetteur exclu, plus récents d'abord) ; combobox maison sur les champs Nom et E-mail de chaque ligne signataire (`web/app.js` : `combobox()`, `fillRow()`, chargement une fois par ouverture du formulaire, clavier ↑↓ Entrée Échap, clic ; styles `.combo*` dans `styles.css`). Choisir un contact remplit nom, e-mail et WhatsApp (via intl-tel-input).
+- Décision reuse-first : Build (≈60 lignes) plutôt que `<datalist>` natif, qui ne peut pas remplir les autres champs et dont le rendu dépend du navigateur.
+- Preuves : `npm run check` vert, tests 17/17 (nouveau test contacts), E2E Playwright `combo.mjs` (scratchpad) : sélection clavier et clic, trois champs remplis, zéro erreur console, captures `g-combo-*.png`.
+- Non déployé sur le VPS (même commande que l'entrée précédente, sans nouvelle variable d'environnement).
