@@ -44,6 +44,10 @@ affiché sous le formulaire ; les liens des signataires sont dans les logs serve
 | `HANDOFF_TTL_MINUTES` | Durée de vie d'un code QR « signer sur mon téléphone » (10 min par défaut) |
 | `DEV_SHOW_LINKS` | Dev uniquement : renvoie le lien magique dans l'API |
 
+## Formulaire « Nouveau document »
+
+Le brouillon (titre, signataires, PDF) est enregistré dans l'IndexedDB du navigateur, par compte (`web/draft.js`), et restauré à la prochaine ouverture : un rechargement ou une mise à jour de l'application ne perd rien. Il est vidé à l'envoi réussi ou via « Vider le brouillon » ; « Annuler » le conserve.
+
 ## Page de signature
 
 - L'aperçu du PDF (pdf.js auto-hébergé, copié dans `web/vendor/pdfjs/` par `scripts/vendor.mjs` lors de `npm run build`) reste visible pendant tout le parcours ; sur petit écran le panneau devient une feuille en bas d'écran.

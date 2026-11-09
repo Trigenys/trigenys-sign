@@ -1,4 +1,5 @@
 import { api, bootBrand, esc, fmtDate, notice } from "./common.js";
+import { clearDraft, debounce, hasContent, loadDraft, saveDraft } from "./draft.js";
 
 const $ = (id) => document.getElementById(id);
 const sections = ["login", "dash", "create", "detail"];
@@ -214,13 +215,15 @@ function signerRow(values = {}) {
     <button type="button" class="remove" title="Retirer">✕</button>`;
   row.querySelector(".remove").addEventListener("click", () => {
     if ($("signer-rows").children.length > 1) row.remove();
+    queueDraft();
   });
   $("signer-rows").appendChild(row);
   phoneField(row.querySelector("[name=phone]"), values.phone || "");
   combobox(row.querySelector("[name=name]"), row);
   combobox(row.querySelector("[name=email]"), row);
+  row.querySelector("[name=phone]").addEventListener("countrychange", queueDraft);
 }
-$("add-signer").addEventListener("click", () => signerRow());
+$("add-signer").addEventListener("click", () => { signerRow(); queueDraft(); });
 
 // ---- PDF dropzone
 let pickedFile = null;
@@ -244,6 +247,7 @@ async function setFile(file) {
     dz.classList.remove("has-file", "error");
     dz.querySelector(".dz-empty").classList.remove("hidden");
     dz.querySelector(".dz-file").classList.add("hidden");
+    dz.dispatchEvent(new Event("setfile"));
     return;
   }
   if (!(await isPdf(file))) {
@@ -258,6 +262,7 @@ async function setFile(file) {
   dz.querySelector(".dz-name").textContent = file.name;
   dz.querySelector(".dz-size").textContent = `${fmtSize(file.size)} · modifié le ${fmtDate(file.lastModified)}`;
   dz.querySelector(".dz-empty").classList.add("hidden");
+  dz.dispatchEvent(new Event("setfile"));
   dz.querySelector(".dz-file").classList.remove("hidden");
   if (!$("c-title").value.trim()) $("c-title").value = file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ");
 }
@@ -272,8 +277,69 @@ dz.addEventListener("keydown", (e) => {
   }
 });
 $("c-file").addEventListener("change", () => setFile($("c-file").files[0]));
+
+// ---- Draft (per account, in this browser)
+let restoring = false;
+function readForm() {
+  return {
+    title: $("c-title").value,
+    signers: [...$("signer-rows").querySelectorAll(".signer-row")].map((r) => {
+      const tel = r.querySelector("[name=phone]");
+      const iti = phones.get(tel);
+      return { name: r.querySelector("[name=name]").value, email: r.querySelector("[name=email]").value, phone: (iti ? iti.getNumber() : tel.value) || "" };
+    }),
+    file: pickedFile,
+    fileName: pickedFile?.name || null,
+    lastModified: pickedFile?.lastModified || null,
+  };
+}
+async function persistDraft() {
+  if (restoring || !me || location.hash.slice(1) !== "new") return;
+  const d = readForm();
+  if (hasContent(d)) {
+    await saveDraft(me.email, d);
+    showDraftNote(Date.now());
+  } else {
+    await clearDraft(me.email);
+    showDraftNote(null);
+  }
+}
+const queueDraft = debounce(persistDraft, 400);
+$("create-form").addEventListener("input", queueDraft);
+function showDraftNote(savedAt) {
+  const el = $("draft-note");
+  el.classList.toggle("hidden", !savedAt);
+  if (savedAt) $("draft-time").textContent = new Date(savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+async function restoreDraft() {
+  const d = await loadDraft(me.email);
+  if (!hasContent(d)) return false;
+  restoring = true;
+  try {
+    $("c-title").value = d.title || "";
+    $("signer-rows").innerHTML = "";
+    for (const sg of d.signers?.length ? d.signers : [{}]) signerRow(sg);
+    if (d.file) await setFile(new File([d.file], d.fileName || "document.pdf", { type: "application/pdf", lastModified: d.lastModified || Date.now() }));
+    showDraftNote(d.savedAt);
+  } finally {
+    restoring = false;
+  }
+  return true;
+}
+async function resetCreateForm() {
+  $("create-form").reset();
+  await setFile(null);
+  $("signer-rows").innerHTML = "";
+  signerRow();
+  showDraftNote(null);
+}
+$("draft-clear").addEventListener("click", async () => {
+  await clearDraft(me.email);
+  await resetCreateForm();
+});
 $("dz-replace").addEventListener("click", () => $("c-file").click());
 $("dz-remove").addEventListener("click", () => setFile(null));
+dz.addEventListener("setfile", queueDraft);
 for (const ev of ["dragenter", "dragover"]) {
   dz.addEventListener(ev, (e) => {
     e.preventDefault();
@@ -314,8 +380,8 @@ $("create-form").addEventListener("submit", async (e) => {
   btn.disabled = true;
   try {
     const doc = await api("/api/documents", { method: "POST", raw: true, body: file, headers: { "content-type": "application/pdf", "x-document-meta": meta } });
-    $("create-form").reset();
-    await setFile(null);
+    await clearDraft(me.email);
+    await resetCreateForm();
     $("signer-rows").innerHTML = "";
     contactsLoaded = null;
     location.hash = `doc=${doc.id}`;
@@ -354,7 +420,7 @@ async function route() {
   if (!me) return show("login");
   const h = location.hash.slice(1);
   if (h === "new") {
-    if (!$("signer-rows").children.length) signerRow();
+    if (!$("signer-rows").children.length && !(await restoreDraft())) signerRow();
     return show("create");
   }
   if (h.startsWith("doc=")) {
