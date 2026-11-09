@@ -14,3 +14,8 @@
 - IP du VPS remplacée par `<ip-du-vps>` dans `deploy/README.md` (dépôt public).
 - Identité git locale : EagleFox31 (noreply). Session Notify `whatsapp-direct` en cours (PR à venir).
 - Prochaine étape : déploiement VPS (DNS, Caddy, clés Notify), puis brancher la clé WhatsApp quand la route est déployée.
+
+##  — PR Notify whatsapp-direct ouverte
+
+- Trigenys/trigenys-notify PR #62 (route `POST /v1/dispatch/{project}/whatsapp-direct`, migration 0005, 97 tests verts). Ni fusionnée ni déployée ; variables wrangler ajoutées mais désactivées.
+- Prochaine étape : revue + merge + `wrangler deploy` côté Notify, puis renseigner `NOTIFY_WHATSAPP_DIRECT_INGEST_KEY` et `NOTIFY_EMAIL_INGEST_KEY` dans le `.env` de trigenys-sign au déploiement VPS.
