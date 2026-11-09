@@ -58,3 +58,8 @@
 ## 2026-11-09 10:21 — Lien de connexion envoyé à jennifer@trigenys.com
 
 - Adresse du commanditaire : jennifer@trigenys.com (pas lawry@). Demande de connexion → `accepted` par Notify. Réception réelle de l'e-mail et test WhatsApp à confirmer par le commanditaire ; aucun verrou, rien en attente côté code.
+
+## 2026-11-09 10:25 — E-mail reçu, couleurs du gabarit corrigées
+
+- E-mail de connexion reçu par le commanditaire (Spacemail, mode sombre) : texte du corps peu lisible. `src/messages.ts` : couleurs explicites sur le corps (#1c1c1c), notes (#555), bouton blanc forcé. Commit poussé, VPS reconstruit, nouvel e-mail envoyé à jennifer@trigenys.com pour contrôle.
+- Reste : test WhatsApp de bout en bout (PDF + signataire avec numéro) par le commanditaire.
