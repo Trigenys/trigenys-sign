@@ -100,3 +100,9 @@
 - Décisions : pdf.js sur tous les écrans (l'iframe native ne rend pas en headless et dépend du navigateur) ; une clé = un e-mail, donc un signataire déjà enrôlé arrive directement sur « Prêt à signer » (test E2E avec e-mails uniques).
 - NON déployé : le redéploiement VPS (`cd ~/trigenys-sign && git pull && sudo docker compose up -d --build`, puis ajouter `HANDOFF_TTL_MINUTES=10` dans `.env` si absent) a été bloqué par le classificateur de permissions. À lancer manuellement ou en session suivante avec accord.
 - Reste : test WhatsApp réel ; vérifier le rendu sur vrai téléphone (Safari iOS : `touch-action` du pad, hauteur de la feuille).
+
+## 2026-11-09 11:57 — Déploiement VPS de la page de signature
+
+- Déployé par l'utilisateur (git pull bf05e7b..b878fa0, `docker compose up -d --build`) ; `HANDOFF_TTL_MINUTES=10` présent dans `.env`. Conteneur `trigenys-sign-sign-1` healthy.
+- Vérifié en live : `/`, `/static/sign.js`, `/static/handoff.js`, `/static/vendor/pdfjs/pdf.min.mjs` (474 Ko), `/h/<code>` répondent 200.
+- Reste : test WhatsApp réel de bout en bout ; rendu sur vrai téléphone (Safari iOS : `touch-action` du pad, hauteur de la feuille).
