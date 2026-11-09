@@ -32,3 +32,8 @@
 
 - Ordre envoyé (approbation explicite du commanditaire) à la session Notify : merge PR #62, projet `trigenys-sign` dans les JSON de projets, secrets Worker depuis `C:	mp	rigenys-sign-notify-keys.env`, deploy, vérif 202.
 - Prochaine étape : à son retour, test réel sur https://sign.trigenys.com (après bascule DNS vers l IP du VPS), puis supprimer le fichier de clés local s il existe encore.
+
+##  — https://sign.trigenys.com en ligne
+
+- DNS A `sign` → 15.235.90.215 posé par le commanditaire (Spaceship). Certificat Let s Encrypt obtenu après `systemctl reload caddy` (premiers essais avaient échoué quand le DNS pointait ailleurs ; ZeroSSL fallback cassé, sans importance).
+- `GET /api/config` en 200 via HTTPS. Les notifications restent dépendantes du déploiement Notify (session relancée, PR #62).
