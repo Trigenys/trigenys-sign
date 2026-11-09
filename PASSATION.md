@@ -63,3 +63,9 @@
 
 - E-mail de connexion reçu par le commanditaire (Spacemail, mode sombre) : texte du corps peu lisible. `src/messages.ts` : couleurs explicites sur le corps (#1c1c1c), notes (#555), bouton blanc forcé. Commit poussé, VPS reconstruit, nouvel e-mail envoyé à jennifer@trigenys.com pour contrôle.
 - Reste : test WhatsApp de bout en bout (PDF + signataire avec numéro) par le commanditaire.
+
+## 2026-11-09 10:34 — Palette Trigenys Group v1 appliquée
+
+- Les couleurs initiales (navy/orange) étaient celles de Trigenys Insight. Source Group : `EagleFox31/project-registry` (`test/command-center-brand-theme.test.mjs`, Brand Book v1) : primaire #872341, secondaire #22A699, accent #F8B6C3, sombre #1A0A0E, clair #F5F3F4.
+- Mapping : `BRAND_NAVY=#1A0A0E` (bandeaux, titres, encre du pad), `BRAND_ORANGE=#872341` (boutons, accents), `BRAND_OFFWHITE=#F5F3F4`, `--ok=#22A699`. Défauts code, CSS, `.env.example`, CLAUDE.md, `.env` VPS mis à jour ; VPS reconstruit, `/api/config` renvoie la palette Group ; e-mail de contrôle envoyé à jennifer@trigenys.com. Capture locale vérifiée (Playwright).
+- Reste : test WhatsApp de bout en bout par le commanditaire.
