@@ -97,9 +97,11 @@ export class NotifyClient implements Notifier {
       }
       const retryable = res.status === 503 || res.status === 429 || res.status >= 500;
       this.record(channel, recipient, kind, retryable ? "retry" : "rejected", `HTTP ${res.status}`);
+      this.log(`[notify:${channel}] ${kind} -> ${maskRecipient(recipient)} refused: HTTP ${res.status}`);
       return { accepted: false, retryable, reason: `Notify HTTP ${res.status}` };
     } catch (e) {
       this.record(channel, recipient, kind, "retry", "network");
+      this.log(`[notify:${channel}] ${kind} -> ${maskRecipient(recipient)} network error: ${(e as Error).message}`);
       return { accepted: false, retryable: true, reason: (e as Error).message };
     }
   }
