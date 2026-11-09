@@ -6,7 +6,7 @@ Signature électronique interne Trigenys (PDF, signataires multiples, clés Ed25
 - Build : `npm run check` (types), `npm test` (node:test, sortie dans `dist/`), `npm run dev`.
 - Structure : `src/config.ts` (env), `src/db.ts` (schéma SQLite), `src/crypto.ts` (Ed25519, JSON canonique),
   `src/service.ts` (logique métier), `src/server.ts` (routes), `src/notify.ts` (client Trigenys Notify V1),
-  `src/pdf.ts` (feuille de signatures), `src/messages.ts` (textes FR), `web/` (pages, `keys.js`, `pad.js`).
+  `src/pdf.ts` (feuille de signatures), `src/messages.ts` (textes FR), `web/` (pages, `keys.js`, `pad.js`, `assets/logo.png` logo Trigenys Group repris de www.trigenys.com, utilisé par les pages, les e-mails et le PDF).
 - Contrat à ne pas casser : `canonicalJson` et `keyFingerprint` sont dupliqués dans `web/keys.js` ; toute
   modification doit être faite des deux côtés et couverte par `test/crypto.test.ts`.
 - Notifications : jamais d'adresse ou de numéro en clair dans les logs (`maskRecipient`). Sans clé Notify,

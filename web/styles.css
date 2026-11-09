@@ -38,14 +38,16 @@ small, .muted { color: var(--muted); }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; background: #eef0ea; padding: 1px 5px; border-radius: 4px; word-break: break-all; }
 
 .topbar {
-  background: var(--navy);
-  color: #fff;
+  background: var(--card);
+  color: var(--navy);
+  border-bottom: 3px solid var(--orange);
   padding: 0 16px;
   height: 58px;
   display: flex; align-items: center; justify-content: space-between;
 }
-.topbar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 1.05rem; color: #fff; text-decoration: none; }
-.topbar .brand .dot { width: 12px; height: 12px; border-radius: 3px; background: var(--orange); transform: rotate(45deg); }
+.topbar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 1.05rem; color: var(--navy); text-decoration: none; }
+.topbar .brand .logo { height: 34px; width: auto; display: block; }
+.topbar .brand .sep { width: 1px; height: 26px; background: var(--line); }
 .topbar .who { font-size: 0.85rem; opacity: 0.85; display: flex; gap: 12px; align-items: center; }
 .topbar button { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
 

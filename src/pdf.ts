@@ -1,4 +1,16 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+
+const LOGO_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web", "assets", "logo.png");
+let logoBytes: Uint8Array | null | undefined;
+function loadLogo(): Uint8Array | null {
+  if (logoBytes === undefined) {
+    try { logoBytes = new Uint8Array(readFileSync(LOGO_PATH)); } catch { logoBytes = null; }
+  }
+  return logoBytes;
+}
 
 export interface SignatureEntry {
   name: string;
@@ -61,10 +73,21 @@ export async function renderSignedPdf(
   const margin = 50;
   let y = pageSize[1] - margin;
 
+  const logoPng = loadLogo();
+  const logo = logoPng ? await pdf.embedPng(logoPng) : null;
   const header = () => {
-    page.drawRectangle({ x: 0, y: pageSize[1] - 28, width: pageSize[0], height: 28, color: navy });
-    page.drawText(`${brand.name} - Page de signatures`, { x: margin, y: pageSize[1] - 19, size: 11, font: bold, color: rgb(1, 1, 1) });
-    y = pageSize[1] - 60;
+    const bandH = 44;
+    page.drawRectangle({ x: 0, y: pageSize[1] - bandH, width: pageSize[0], height: bandH, color: rgb(1, 1, 1) });
+    page.drawRectangle({ x: 0, y: pageSize[1] - bandH - 3, width: pageSize[0], height: 3, color: orange });
+    let tx = margin;
+    if (logo) {
+      const h = 28;
+      const w = (logo.width / logo.height) * h;
+      page.drawImage(logo, { x: margin, y: pageSize[1] - bandH + (bandH - h) / 2, width: w, height: h });
+      tx = margin + w + 14;
+    }
+    page.drawText(`${brand.name} - Page de signatures`, { x: tx, y: pageSize[1] - 27, size: 11, font: bold, color: navy });
+    y = pageSize[1] - bandH - 30;
   };
   header();
 
