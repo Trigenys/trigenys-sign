@@ -8,7 +8,7 @@ function layout(cfg: Config, title: string, bodyHtml: string, cta?: { href: stri
   return `<!doctype html><html lang="fr"><body style="margin:0;background:${offwhite};font-family:Helvetica,Arial,sans-serif;color:#1c1c1c">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="560" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden">
-<tr><td style="background:#ffffff;padding:16px 28px;border-bottom:3px solid ${orange}"><img src="${cfg.publicBaseUrl}/static/assets/logo.png" alt="Trigenys Group" width="152" height="48" style="display:block;height:48px;width:auto;border:0"></td></tr>
+<tr><td align="center" style="background:#ffffff;padding:18px 28px;border-bottom:3px solid ${orange}"><img src="${cfg.publicBaseUrl}/static/assets/logo.png" alt="Trigenys Group" width="165" height="52" style="display:block;margin:0 auto;height:52px;width:auto;border:0"></td></tr>
 <tr><td style="background:${navy};padding:10px 28px;color:#ffffff;font-weight:bold;font-size:14px">${esc(name)}</td></tr>
 <tr><td style="padding:28px;color:#1c1c1c;font-size:15px;line-height:1.5"><h1 style="margin:0 0 16px;font-size:20px;color:${navy}">${esc(title)}</h1><div style="color:#1c1c1c">${bodyHtml}</div>
 ${cta ? `<p style="margin:28px 0 8px"><a href="${cta.href}" style="background:${orange};color:#ffffff !important;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">${esc(cta.label)}</a></p><p style="font-size:12px;color:#555">Ou copiez ce lien : <a href="${cta.href}" style="color:${navy}">${cta.href}</a></p>` : ""}
