@@ -48,3 +48,9 @@
 
 - Merge autorisé par le commanditaire (« j'autorise ») et exécuté ici : #62 (route whatsapp-direct) et #63 (projet trigenys-sign, limites 50/h e-mail, 5/h WhatsApp) sont MERGED.
 - Suite (secrets, migration D1 0005, deploy Worker, test 202) confiée à la session Notify avec l'autorisation transmise ; en attente de son rapport. Puis test réel sur sign.trigenys.com.
+
+## 2026-11-09 10:07 — Notify déployé, envoi e-mail accepté (202)
+
+- Session Notify : secrets posés, migration 0005 appliquée, Worker déployé (version e4a64ad3), fichier de clés supprimé.
+- Piège : `https://notify.trigenys.com` est le proxy Caddy vers WAHA (404 sur `/v1/dispatch`). Le Worker répond sur `https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev` ; `.env` du VPS corrigé, container redémarré, demande de connexion → `accepted`. Doc et `.env.example` alignés.
+- Reste : réception réelle de l'e-mail et test WhatsApp (nécessite un numéro réel) à confirmer par le commanditaire.

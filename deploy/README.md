@@ -17,7 +17,8 @@ Dans `.env` :
 - `PUBLIC_BASE_URL=https://sign.trigenys.com`
 - `SESSION_SECRET=$(openssl rand -hex 32)`
 - `DEV_SHOW_LINKS=0`
-- `NOTIFY_BASE_URL=https://notify.trigenys.com`, `NOTIFY_PROJECT=trigenys-sign`
+- `NOTIFY_BASE_URL=https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev`, `NOTIFY_PROJECT=trigenys-sign`
+  (URL du Worker Notify, pas `notify.trigenys.com` qui est le proxy WAHA)
 - `NOTIFY_EMAIL_INGEST_KEY` : clé déclarée côté Notify (`EMAIL_TRIGENYS_SIGN_INGEST_KEY`, projet ajouté à `EMAIL_PROJECTS_JSON`)
 - `NOTIFY_WHATSAPP_DIRECT_INGEST_KEY` : clé de la route `whatsapp-direct` (une fois la PR Notify fusionnée et déployée)
 
