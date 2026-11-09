@@ -14,9 +14,13 @@ function fail(message) {
 
 async function start() {
   if (!/^[A-Za-z0-9_-]{16,}$/.test(code)) return fail("Ce lien est incomplet. Scannez à nouveau le code sur l'ordinateur.");
+  // The claim secret is kept per code so a reload, a prerender or a duplicate tab reuses it instead of voiding it.
+  const claimKey = `handoff-claim:${code}`;
+  const stored = (() => { try { return localStorage.getItem(claimKey); } catch { return null; } })();
   let claim;
   try {
-    claim = await api(`/api/handoff/${code}/claim`, { method: "POST", body: {} });
+    claim = await api(`/api/handoff/${code}/claim`, { method: "POST", body: stored ? { claim: stored } : {} });
+    try { localStorage.setItem(claimKey, claim.claim); } catch { /* storage unavailable: single load still works */ }
   } catch (err) {
     return fail(err.message);
   }
@@ -34,6 +38,7 @@ async function start() {
     const strokes = pad.serialize();
     try {
       await api(`/api/handoff/${code}/drawing`, { method: "POST", body: { claim: claim.claim, signaturePng: pad.toPng(), strokes } });
+      try { localStorage.removeItem(claimKey); } catch { /* ignore */ }
       await swapStep(steps(), $("sent"));
       await replayStrokes($("replay"), strokes, { duration: 1200 });
       $("check").classList.add("show");

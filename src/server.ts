@@ -118,7 +118,10 @@ export function createServer(cfg: Config, svc: Service): http.Server {
   router.add("POST", "/api/sign/:token/handoff", (ctx) => sendJson(ctx.res, 201, svc.createHandoff(ctx.params.token!)));
   router.add("GET", "/api/sign/:token/handoff/:id", (ctx) => sendJson(ctx.res, 200, svc.handoffStatus(ctx.params.token!, ctx.params.id!)));
   router.add("POST", "/api/sign/:token/handoff/:id/cancel", (ctx) => sendJson(ctx.res, 200, svc.cancelHandoff(ctx.params.token!, ctx.params.id!)));
-  router.add("POST", "/api/handoff/:code/claim", (ctx) => sendJson(ctx.res, 200, svc.claimHandoff(ctx.params.code!)));
+  router.add("POST", "/api/handoff/:code/claim", async (ctx) => {
+    const body = await readJson<{ claim?: unknown }>(ctx.req);
+    sendJson(ctx.res, 200, svc.claimHandoff(ctx.params.code!, body.claim ?? null));
+  });
   router.add("POST", "/api/handoff/:code/drawing", async (ctx) => {
     const body = await readJson<{ claim: unknown; signaturePng: unknown; strokes: unknown }>(ctx.req);
     sendJson(ctx.res, 200, svc.submitHandoffDrawing(ctx.params.code!, body));

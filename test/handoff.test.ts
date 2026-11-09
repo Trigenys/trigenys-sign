@@ -54,6 +54,13 @@ test("hand-off: desktop creates code, phone claims and submits, desktop enrolls 
   assert.equal(claim.documentTitle, "Contrat");
   assert.equal(svc.handoffStatus(token, h.id).state, "claimed");
 
+  // A second open presenting the current claim keeps it (reload, prerender, duplicate tab) …
+  assert.equal(svc.claimHandoff(code, claim.claim).claim, claim.claim);
+  // … while an open without it re-issues the secret and voids the previous one.
+  const reissued = svc.claimHandoff(code);
+  assert.notEqual(reissued.claim, claim.claim);
+  rejects(() => svc.submitHandoffDrawing(code, { claim: claim.claim, signaturePng: PNG, strokes: STROKES }), 403);
+  claim.claim = reissued.claim;
   rejects(() => svc.submitHandoffDrawing(code, { claim: "wrong", signaturePng: PNG, strokes: STROKES }), 403);
   rejects(() => svc.submitHandoffDrawing(code, { claim: claim.claim, signaturePng: PNG, strokes: [] }), 400);
   svc.submitHandoffDrawing(code, { claim: claim.claim, signaturePng: PNG, strokes: STROKES });

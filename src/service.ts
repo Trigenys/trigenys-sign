@@ -364,19 +364,25 @@ export class Service {
     return h;
   }
 
-  /** Phone side: first open of /h/<code>. Returns a claim secret that must accompany the drawing. */
-  claimHandoff(code: string) {
+  /**
+   * Phone side: open of /h/<code>. Returns a claim secret that must accompany the drawing.
+   * Idempotent for a phone that already holds the secret (reload, prerender, duplicate tab):
+   * presenting the current claim keeps it; otherwise a new one is issued and the previous is void.
+   */
+  claimHandoff(code: string, existing: unknown = null) {
     const h = this.byCode(code);
     const { doc, user } = this.signerOfHandoff(h);
+    const view = { expiresAt: h.expires_at, signerName: user.name || user.email, documentTitle: doc.title };
+    if (typeof existing === "string" && existing && h.claim_hash && sha256Hex(existing) === h.claim_hash) return { claim: existing, ...view };
     const claim = randomToken(24);
     this.db.run("UPDATE handoffs SET claimed_at = ?, claim_hash = ? WHERE id = ?", now(), sha256Hex(claim), h.id);
-    return { claim, expiresAt: h.expires_at, signerName: user.name || user.email, documentTitle: doc.title };
+    return { claim, ...view };
   }
 
   /** Phone side: stores the drawing; the desktop picks it up by polling. */
   submitHandoffDrawing(code: string, body: { claim: unknown; signaturePng: unknown; strokes: unknown }) {
     const h = this.byCode(code);
-    if (!h.claim_hash || sha256Hex(String(body.claim ?? "")) !== h.claim_hash) throw new HttpError(403, "Ouvrez d'abord le code depuis votre téléphone");
+    if (!h.claim_hash || sha256Hex(String(body.claim ?? "")) !== h.claim_hash) throw new HttpError(403, h.claim_hash ? "Ce code a été rouvert dans un autre onglet : rechargez cette page puis renvoyez votre signature" : "Ouvrez d'abord le code depuis votre téléphone");
     const d = this.validateDrawing(body);
     this.db.run("UPDATE handoffs SET submitted_at = ?, signature_png = ?, strokes_json = ? WHERE id = ? AND submitted_at IS NULL", now(), d.png, d.strokesJson, h.id);
     return { ok: true };
