@@ -54,3 +54,7 @@
 - Session Notify : secrets posés, migration 0005 appliquée, Worker déployé (version e4a64ad3), fichier de clés supprimé.
 - Piège : `https://notify.trigenys.com` est le proxy Caddy vers WAHA (404 sur `/v1/dispatch`). Le Worker répond sur `https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev` ; `.env` du VPS corrigé, container redémarré, demande de connexion → `accepted`. Doc et `.env.example` alignés.
 - Reste : réception réelle de l'e-mail et test WhatsApp (nécessite un numéro réel) à confirmer par le commanditaire.
+
+## 2026-11-09 10:21 — Lien de connexion envoyé à jennifer@trigenys.com
+
+- Adresse du commanditaire : jennifer@trigenys.com (pas lawry@). Demande de connexion → `accepted` par Notify. Réception réelle de l'e-mail et test WhatsApp à confirmer par le commanditaire ; aucun verrou, rien en attente côté code.
