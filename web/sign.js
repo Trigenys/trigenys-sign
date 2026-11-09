@@ -1,4 +1,5 @@
 // Signing page. States: loading | enroll-remote | enroll-local | received | ready | signing | done.
+import { registerServiceWorker } from "./pwa.js";
 import { api, bootBrand, esc, fmtDate, notice } from "./common.js";
 import { canDrawHere, isCompact, rememberDrawHere } from "./device.js";
 import { createKeyPair, fingerprintOf, loadKeyPair, signPayload, supportsEd25519 } from "./keys.js";
@@ -352,5 +353,6 @@ setupRemote();
 setupReady();
 setupSheet();
 tuneForDevice();
+registerServiceWorker();
 bootBrand();
 load().catch((err) => notice($("error"), "err", esc(err.message)));

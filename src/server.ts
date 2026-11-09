@@ -29,6 +29,11 @@ export function createServer(cfg: Config, svc: Service): http.Server {
   router.add("GET", "/s/:token", page("sign.html"));
   router.add("GET", "/h/:code", page("handoff.html"));
   router.add("GET", "/verify/:id", page("verify.html"));
+  router.add("GET", "/sw.js", page("sw.js"));
+  router.add("GET", "/manifest.webmanifest", (ctx) => {
+    ctx.res.writeHead(200, { "content-type": "application/manifest+json; charset=utf-8", "cache-control": "public, max-age=3600" });
+    ctx.res.end(JSON.stringify(webManifest(cfg)));
+  });
   router.add("GET", "/auth/:token", (ctx) => {
     const user = svc.consumeLogin(ctx.params.token!);
     setCookie(ctx.res, "ts_session", signCookie(cfg.sessionSecret, user.id), { maxAge: 30 * 86400, secure });
@@ -179,6 +184,26 @@ function serveFile(ctx: Ctx, filePath: string): void {
   const ext = path.extname(resolved);
   ctx.res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": ext === ".html" ? "no-store" : "public, max-age=300" });
   fs.createReadStream(resolved).pipe(ctx.res);
+}
+
+/** Web app manifest built from the brand config so a white-label deployment installs under its own name and colours. */
+export function webManifest(cfg: Config) {
+  return {
+    name: cfg.brand.name,
+    short_name: cfg.brand.name.length <= 12 ? cfg.brand.name : cfg.brand.name.split(/\s+/).pop() ?? cfg.brand.name,
+    description: "Signature electronique interne de documents PDF",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: cfg.brand.offwhite,
+    theme_color: cfg.brand.offwhite,
+    lang: "fr",
+    icons: [
+      { src: "/static/assets/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/static/assets/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/static/assets/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  };
 }
 
 const safeName = (s: string) => s.replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 80) || "document";

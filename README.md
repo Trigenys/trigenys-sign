@@ -106,6 +106,16 @@ confirmée n'est jamais refaite, un échec est relancé par le balayage. Rétroa
 complets sont ancrés par le balayage au prochain démarrage. Rien n'est écrit sur une blockchain hors
 de l'empreinte agrégée ; aucun portefeuille, aucun frais.
 
+## Application installable (PWA)
+
+L'application s'installe sur l'écran d'accueil d'un téléphone ou en fenêtre autonome sur ordinateur, sans passer par un store :
+- `GET /manifest.webmanifest` est généré depuis la configuration de marque (`BRAND_NAME`, `BRAND_OFFWHITE`), donc un déploiement en marque blanche s'installe sous son propre nom ;
+- `GET /sw.js` : service worker minimal qui met en cache uniquement les fichiers `/static/*` (shell). Pages, API et PDF passent toujours par le réseau ; rien de signé n'est stocké hors ligne ;
+- sur le tableau de bord, une bannière discrète propose l'installation (invite native sur Chrome/Edge/Android, mode d'emploi « Partager → Sur l'écran d'accueil » sur iPhone). « Plus tard » la masque 30 jours (`localStorage`) ;
+- icônes dans `web/assets/icons/` (192, 512, maskable 512, apple-touch 180), dérivées du logo.
+
+Pour forcer la mise à jour du shell chez les utilisateurs après un changement de `web/`, incrémenter `VERSION` dans `web/sw.js`.
+
 ## API
 
 | Méthode | Route | Rôle |

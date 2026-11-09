@@ -434,3 +434,7 @@ button.small { padding: 6px 12px; font-size: 0.84rem; }
 .fp-remove { position: absolute; right: -2px; bottom: 100%; margin-bottom: 2px; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 3px; background: hsl(var(--fp-h) 60% 45%); color: #fff; font-size: 0.65rem; line-height: 18px; cursor: pointer; }
 .fp-handle { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; background: hsl(var(--fp-h) 60% 45%); border-radius: 3px 0 2px 0; cursor: nwse-resize; }
 @media (max-width: 720px) { .fields-stage { max-height: 60vh; } }
+
+/* Install banner */
+.install { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.install-actions { display: flex; gap: 8px; flex: none; }

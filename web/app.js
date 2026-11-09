@@ -1,6 +1,7 @@
 import { api, bootBrand, esc, fmtDate, notice } from "./common.js";
 import { clearDraft, debounce, hasContent, loadDraft, saveDraft } from "./draft.js";
 import { FieldPlacer, renderLegend } from "./fields.js";
+import { installPrompt, registerServiceWorker } from "./pwa.js";
 
 const $ = (id) => document.getElementById(id);
 const sections = ["login", "dash", "create", "detail"];
@@ -610,5 +611,6 @@ async function boot() {
 }
 
 window.addEventListener("hashchange", route);
-bootBrand();
+registerServiceWorker();
+bootBrand().then((brand) => installPrompt($("install-banner"), brand?.name || "Trigenys Sign"));
 boot();

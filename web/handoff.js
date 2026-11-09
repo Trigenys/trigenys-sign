@@ -1,4 +1,5 @@
 // Phone side of the QR hand-off: claim the code, draw, send the drawing. No key is generated here.
+import { registerServiceWorker } from "./pwa.js";
 import { api, bootBrand, esc, notice } from "./common.js";
 import { enter, swapStep } from "./motion.js";
 import { SignaturePad, replayStrokes } from "./pad.js";
@@ -52,5 +53,6 @@ async function start() {
   enter($("draw"), { y: 0 });
 }
 
+registerServiceWorker();
 bootBrand();
 start();

@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trigenys Sign</title>
 <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#F5F3F4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/css/intlTelInput.min.css" integrity="sha384-WNF7dtZ0UZJjHFk7vUp7qTzY3PQnxFBo6/lqKHvZmCYwIUHqDDsyFL6zfeG83jKf" crossorigin="anonymous">
 <link rel="stylesheet" href="/static/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/js/intlTelInputWithUtils.min.js" integrity="sha384-SRsxpWHDi8Qyf99NlbZLWtO4J9oCOHJt7mtucRXvxqyneP4KRQjnjWvM8TbZe5ad" crossorigin="anonymous"></script>
@@ -53,6 +58,7 @@
           <h1>Mes documents</h1>
           <button id="new-doc" class="primary">Nouveau document</button>
         </div>
+        <div id="install-banner" class="notice info mt hidden"></div>
         <div id="doc-list" class="doc-list mt"></div>
         <p id="doc-empty" class="muted hidden">Aucun document pour le moment. Créez-en un pour commencer.</p>
       </div>

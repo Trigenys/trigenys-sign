@@ -37,6 +37,7 @@ export async function bootBrand() {
     r.setProperty("--navy", brand.navy);
     r.setProperty("--orange", brand.orange);
     r.setProperty("--offwhite", brand.offwhite);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", brand.offwhite);
     document.querySelectorAll("[data-brand-name]").forEach((n) => (n.textContent = brand.name));
     document.title = document.title.replace("Trigenys Sign", brand.name);
     return brand;
