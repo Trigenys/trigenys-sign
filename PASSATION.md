@@ -84,3 +84,7 @@
 
 - Retour utilisateur : design jugé laid, aucun skill design utilisé, aucune maquette montrée. Refonte avec le skill frontend-design : Source Serif 4 + Instrument Sans, fond papier, bordeaux action / sarcelle valide, signature manuscrite animée dans le hero, liste des documents en registre, fiches sobres. Captures Playwright des 6 écrans vérifiées (login desktop+mobile, dashboard, création, détail, signature, vérification). Tests 11/11, déployé sur sign.trigenys.com. CLAUDE.md : ligne Design ajoutée.
 - Leçon : toute UI neuve passe par le skill frontend-design et des captures avant livraison, jamais un CSS par défaut.
+
+## 2026-11-09 11:05 — Retouches UI en cours
+
+- Demandes : avatar/initiales de la personne connectée dans la navbar ; import PDF en zone glisser-déposer dynamique ; champ WhatsApp avec dropdown drapeaux + indicatif (profil et lignes signataires). Choix reuse-first : intl-tel-input via cdnjs. Déjà déployé : refonte visuelle (commit « Redesign the web UI »). Prochaine étape : implémenter dans web/, captures, tests, déployer.

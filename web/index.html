@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trigenys Sign</title>
 <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/css/intlTelInput.min.css" integrity="sha384-WNF7dtZ0UZJjHFk7vUp7qTzY3PQnxFBo6/lqKHvZmCYwIUHqDDsyFL6zfeG83jKf" crossorigin="anonymous">
 <link rel="stylesheet" href="/static/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/js/intlTelInputWithUtils.min.js" integrity="sha384-SRsxpWHDi8Qyf99NlbZLWtO4J9oCOHJt7mtucRXvxqyneP4KRQjnjWvM8TbZe5ad" crossorigin="anonymous"></script>
 </head>
 <body>
 <header class="topbar">
@@ -61,8 +63,8 @@
           <form id="profile-form">
             <label for="p-name">Nom affiché</label>
             <input id="p-name" type="text" placeholder="Votre nom">
-            <label for="p-phone">WhatsApp (format international)</label>
-            <input id="p-phone" type="tel" placeholder="+2376XXXXXXXX">
+            <label for="p-phone">WhatsApp</label>
+            <input id="p-phone" type="tel" autocomplete="tel-national">
             <div class="row mt"><button type="submit" class="ghost">Enregistrer</button><span id="profile-saved" class="pill ok hidden">Enregistré</span></div>
           </form>
         </div>
@@ -78,7 +80,28 @@
         <label for="c-title">Titre</label>
         <input id="c-title" type="text" required placeholder="Contrat de prestation – Novembre 2026">
         <label for="c-file">Fichier PDF</label>
-        <input id="c-file" type="file" accept="application/pdf" required>
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Importer un fichier PDF">
+          <input id="c-file" type="file" accept="application/pdf,.pdf" class="visually-hidden" tabindex="-1">
+          <div class="dz-empty">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path class="dz-sheet" d="M12 6h17l9 9v27H12z"/><path d="M29 6v9h9"/>
+              <path class="dz-arrow" d="M24 36V22M18 28l6-6 6 6"/>
+            </svg>
+            <p><strong>Déposez votre PDF ici</strong><span> ou </span><span class="dz-browse">parcourez vos fichiers</span></p>
+            <small>Un seul fichier, au format PDF.</small>
+          </div>
+          <div class="dz-file hidden">
+            <div class="dz-badge">PDF</div>
+            <div class="dz-meta">
+              <div class="dz-name"></div>
+              <div class="dz-size"></div>
+            </div>
+            <div class="dz-actions">
+              <button type="button" class="ghost" id="dz-replace">Remplacer</button>
+              <button type="button" class="remove" id="dz-remove" title="Retirer le fichier" aria-label="Retirer le fichier">✕</button>
+            </div>
+          </div>
+        </div>
         <label>Signataires</label>
         <div id="signer-rows"></div>
         <div class="row mt"><button type="button" id="add-signer" class="ghost">Ajouter un signataire</button></div>
