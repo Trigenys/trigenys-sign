@@ -233,3 +233,7 @@
 ## 2026-11-16 19:46 — Déploiement détection « Signature » confirmé
 
 - Prod (236be8e) : site 200, `sw.js` v5, `/static/suggest.js` servi, worker pdf.js legacy (polyfills présents). Conteneur sain, RAM VPS ~2,2 Go disponible avant build.
+
+## 2026-11-16 20:08 — Contrat réel signé 3/3 en prod
+
+Contrat de Prestation Tiffany Aka'a : nouvelle version créée le 16/11 19:51, détection « Signature » (sw v5) validée sur le PDF réel, 3 signatures obtenues, statut Complet. Ancienne version annulée (1/3). Aucun lot en cours.
