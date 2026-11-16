@@ -665,7 +665,11 @@ async function route() {
       await resetCreateForm();
       $("signer-rows").innerHTML = "";
       $("c-title").value = from.title;
-      for (const s of from.signers) signerRow({ name: s.name || "", email: s.email });
+      // The document view never carries phone numbers (it also feeds the public verify page):
+      // take them from the owner's signer book, which already serves the autocomplete.
+      await loadContacts();
+      const phoneOf = (email) => contacts.find((c) => c.email.toLowerCase() === email.toLowerCase())?.phone || "";
+      for (const s of from.signers) signerRow({ name: s.name || "", email: s.email, phone: phoneOf(s.email) });
       showSupersedes(from);
       syncPlacerSigners();
     } else if (!$("signer-rows").children.length && !(await restoreDraft())) signerRow();

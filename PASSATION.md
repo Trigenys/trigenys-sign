@@ -216,3 +216,9 @@
 - `web/index.html` : `<dialog id="confirm-dialog">` ; `web/styles.css` : `.modal` (thème carte, backdrop flouté, bouton danger) ; `web/app.js` : `openDialog` / `askConfirm` / `showError`, plus aucun `confirm()` ni `alert()` dans l'app. `web/sw.js` VERSION v3.
 - Annulation : « Garder » / « Annuler le document » (rouge) ; nouvelle version : « Revenir » / « Continuer » ; erreurs API : avis avec « Fermer ». Échap = garder.
 - Vérifié : check TS, 31/31 tests, Playwright local (0 dialogue natif, Garder/Échap conservent le document, confirmation annule bien). Déployé en prod dans la foulée (voir sortie du script de déploiement).
+
+## 2026-11-16 19:25 — Nouvelle version : le WhatsApp des signataires est repris
+
+- `web/app.js` (route `#new` depuis « Nouvelle version ») : les numéros viennent du carnet de contacts `/api/contacts` (propriétaire seulement) car `documentView` alimente aussi `/verify` et ne doit pas exposer les téléphones. `web/sw.js` VERSION v4.
+- Rappel : les contacts sont bien en base (`users.phone`, jamais écrasé par un envoi sans numéro) ; l'autocomplétion Nom/E-mail du formulaire remplit aussi le numéro.
+- Vérifié : check TS, 31/31 tests, Playwright (signataire avec numéro pré-rempli, sans numéro vide). Déployé en prod.
