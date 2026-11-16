@@ -1,5 +1,5 @@
 // Service worker: caches the static shell only. Pages, API calls and PDFs always go to the network.
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `trigenys-sign-${VERSION}`;
 
 self.addEventListener("install", (e) => {

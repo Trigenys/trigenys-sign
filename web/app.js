@@ -144,7 +144,7 @@ $("profile-form").addEventListener("submit", async (e) => {
     setTimeout(() => $("profile-saved").classList.add("hidden"), 2000);
     await refreshMe();
   } catch (err) {
-    alert(err.message);
+    showError(err.message);
   }
 });
 
@@ -475,28 +475,59 @@ $("create-form").addEventListener("submit", async (e) => {
   }
 });
 
+// ---- In-app dialog (confirm / notice), styled like the rest of the app
+const dialog = $("confirm-dialog");
+function openDialog({ title, body, ok = "Confirmer", cancel = "Annuler", danger = false, notice = false }) {
+  return new Promise((resolve) => {
+    $("modal-title").textContent = title;
+    $("modal-body").textContent = body || "";
+    $("modal-body").classList.toggle("hidden", !body);
+    const okBtn = $("modal-ok");
+    const cancelBtn = $("modal-cancel");
+    okBtn.textContent = ok;
+    okBtn.classList.toggle("danger", danger);
+    cancelBtn.textContent = cancel;
+    cancelBtn.classList.toggle("hidden", notice);
+    const done = (value) => {
+      okBtn.onclick = cancelBtn.onclick = dialog.oncancel = dialog.onclose = null;
+      if (dialog.open) dialog.close();
+      resolve(value);
+    };
+    okBtn.onclick = () => done(true);
+    cancelBtn.onclick = () => done(false);
+    dialog.oncancel = (e) => { e.preventDefault(); done(false); };
+    dialog.onclose = () => done(false);
+    dialog.showModal();
+    (notice ? okBtn : cancelBtn).focus();
+  });
+}
+const askConfirm = (title, body, opts = {}) => openDialog({ title, body, ...opts });
+const showError = (message) => openDialog({ title: "Impossible de continuer", body: message, ok: "Fermer", notice: true });
+
 // ---- Detail
 let currentDoc = null;
 $("detail-cancel").addEventListener("click", async () => {
   if (!currentDoc) return;
   const n = currentDoc.signed;
   const warn = n ? ` ${n} signature${n > 1 ? "s" : ""} déjà recueillie${n > 1 ? "s" : ""} resteront consultables mais le document ne sera jamais complet.` : "";
-  if (!confirm(`Annuler « ${currentDoc.title} » ?${warn} Les liens de signature cesseront de fonctionner et les signataires en attente seront prévenus.`)) return;
+  const ok = await askConfirm(`Annuler « ${currentDoc.title} » ?`, `Les liens de signature cesseront de fonctionner et les signataires en attente seront prévenus.${warn}`, { ok: "Annuler le document", cancel: "Garder", danger: true });
+  if (!ok) return;
   try {
     await api(`/api/documents/${currentDoc.id}/cancel`, { method: "POST" });
     await loadDetail(currentDoc.id);
   } catch (err) {
-    alert(err.message);
+    showError(err.message);
   }
 });
 $("detail-newversion").addEventListener("click", async () => {
   if (!currentDoc) return;
   if (currentDoc.status === "pending") {
-    if (!confirm(`Créer une nouvelle version annule « ${currentDoc.title} » : les liens actuels cesseront de fonctionner et les signataires en attente seront prévenus. Continuer ?`)) return;
+    const ok = await askConfirm(`Nouvelle version de « ${currentDoc.title} »`, "Créer une nouvelle version annule celle-ci : les liens actuels cesseront de fonctionner et les signataires en attente seront prévenus. Un nouveau PDF vous sera demandé.", { ok: "Continuer", cancel: "Revenir" });
+    if (!ok) return;
     try {
       await api(`/api/documents/${currentDoc.id}/cancel`, { method: "POST" });
     } catch (err) {
-      return alert(err.message);
+      return showError(err.message);
     }
   }
   newVersionFrom = currentDoc;
@@ -645,7 +676,7 @@ async function route() {
       await loadDetail(h.slice(4));
       return show("detail");
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       location.hash = "";
       return;
     }

@@ -312,6 +312,17 @@ canvas.pad { display: block; width: 100%; aspect-ratio: 2 / 1; height: auto; tou
 
 /* ---------- Utilities ---------- */
 .hidden { display: none !important; }
+
+/* In-app confirmation dialog (replaces the browser's native confirm/alert) */
+.modal { border: 0; padding: 0; background: transparent; max-width: min(92vw, 460px); width: 100%; }
+.modal::backdrop { background: rgba(26,10,14,0.45); backdrop-filter: blur(2px); }
+.modal form { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-float); padding: 26px 28px 22px; margin: 0; }
+.modal h2 { font-family: var(--font-head); font-weight: 500; font-size: 1.35rem; line-height: 1.25; margin: 0 0 10px; color: var(--ink); }
+.modal p { margin: 0; color: var(--muted); line-height: 1.5; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.modal-actions button.primary.danger { background: var(--err); color: #fff; border-color: var(--err); }
+.modal-actions button.primary.danger:hover { background: #8A1C15; }
+@media (max-width: 480px) { .modal form { padding: 22px 20px 18px; } .modal-actions button { flex: 1 1 auto; } }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .space { justify-content: space-between; }
 .mt { margin-top: 18px; }

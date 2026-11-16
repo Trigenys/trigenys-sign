@@ -210,3 +210,9 @@
 - Vérifications prod : `/` 200, `/sw.js` 200 avec `VERSION = "v2"`, `POST /api/documents/x/cancel` sans session → 401, `PRAGMA table_info(documents)` contient `cancelled_at` et `supersedes_id`, documents : 1 `pending` (contrat Tiffany Aka'a), 0 annulé.
 - Leçon : les scripts de déploiement PowerShell ne doivent pas imbriquer du JS dans la commande `ssh` (erreur de parsing) ; la partie distante vit dans un script bash transmis via `Get-Content … | ssh … "bash -s"`.
 - Reste côté utilisateur : test PWA sur mobile réel, signature du contrat Tiffany Aka'a.
+
+## 2026-11-16 17:33 — Modale de confirmation maison (fin des confirm/alert natifs)
+
+- `web/index.html` : `<dialog id="confirm-dialog">` ; `web/styles.css` : `.modal` (thème carte, backdrop flouté, bouton danger) ; `web/app.js` : `openDialog` / `askConfirm` / `showError`, plus aucun `confirm()` ni `alert()` dans l'app. `web/sw.js` VERSION v3.
+- Annulation : « Garder » / « Annuler le document » (rouge) ; nouvelle version : « Revenir » / « Continuer » ; erreurs API : avis avec « Fermer ». Échap = garder.
+- Vérifié : check TS, 31/31 tests, Playwright local (0 dialogue natif, Garder/Échap conservent le document, confirmation annule bien). Déployé en prod dans la foulée (voir sortie du script de déploiement).
