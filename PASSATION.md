@@ -229,3 +229,7 @@
 - `web/fields.js` : `readText()` garde toute la couche texte, `suggest()` délègue à `assignAnchors`, les libellés déjà couverts par une zone posée sont ignorés. `web/sw.js` VERSION v5.
 - `scripts/vendor.mjs` : pdf.js vendu depuis `legacy/build`. Cause : pdfjs-dist 6.5 (build moderne) appelle `Uint8Array.prototype.toHex`, absent de Chromium 136 (mai 2025) → `UnknownErrorException`, aucun aperçu (détail, formulaire, page de signature). Le build legacy embarque les polyfills, même API. Leçon : tester l’aperçu dans un navigateur un peu ancien après toute montée de pdfjs-dist.
 - Vérifié : check TS, 38/38 tests (7 nouveaux), Playwright sur un PDF reproduisant le contrat réel (table de paiement avec « Signature » p.2, bloc SIGNATURES 3 colonnes nommées p.3) : fiche document et formulaire de création placent Jennifer / Ibrahim / Tiffany sous leur colonne p.3, quel que soit l’ordre de saisie et avec des noms abrégés. Déployé en prod (voir entrée suivante si le déploiement est confirmé).
+
+## 2026-11-16 19:46 — Déploiement détection « Signature » confirmé
+
+- Prod (236be8e) : site 200, `sw.js` v5, `/static/suggest.js` servi, worker pdf.js legacy (polyfills présents). Conteneur sain, RAM VPS ~2,2 Go disponible avant build.
