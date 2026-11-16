@@ -1,12 +1,13 @@
 // Signature placement: renders the PDF pages and lets the owner put one box per signer where the
 // signature must land. Boxes are stored as fractions of the displayed page (origin top-left), so they
 // survive any zoom and are mapped to PDF points by the server. "Signature" mentions found in the text
-// layer are used to suggest positions.
+// layer are used to suggest positions (see suggest.js for the matching rules).
+import { assignAnchors } from "./suggest.js";
+
 const PDFJS = "/static/vendor/pdfjs/pdf.min.mjs";
 const WORKER = "/static/vendor/pdfjs/pdf.worker.min.mjs";
 const DEFAULT_W = 0.2;
 const DEFAULT_H = 0.075;
-const ANCHOR = /^\s*signature(\s+(du|de|des|d'|la|le|l')\b.*)?\s*:?\s*$/i;
 const HUES = [340, 210, 150, 30, 270, 190, 60, 0];
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -20,7 +21,8 @@ export class FieldPlacer {
     this.armed = null; // key whose box is placed on the next page click
     this.doc = null;
     this.pages = []; // [{ el, overlay, vw, vh }]
-    this.anchors = null; // lazily extracted text anchors
+    this.textItems = null; // lazily extracted text layer, page fractions
+    this.anchors = null; // "Signature" labels found in it
     this.loadId = 0;
     this.stage.classList.add("fp");
     this.stage.addEventListener("click", (e) => this.onStageClick(e));
@@ -31,6 +33,7 @@ export class FieldPlacer {
     const id = ++this.loadId;
     this.stage.innerHTML = "";
     this.pages = [];
+    this.textItems = null;
     this.anchors = null;
     this.doc = null;
     const pdfjs = await import(PDFJS);
@@ -94,42 +97,40 @@ export class FieldPlacer {
     this.onChange({});
   }
 
-  /** Reads the text layer once and returns "Signature" anchors as boxes in page fractions, reading order. */
-  async findAnchors() {
-    if (this.anchors) return this.anchors;
+  /** Reads the text layer once: every item as { page, str, left, right, baseline, lineH } in page fractions. */
+  async readText() {
+    if (this.textItems) return this.textItems;
     const out = [];
     for (const { page, base } of this.pages) {
       const text = await page.getTextContent();
       for (const item of text.items) {
-        if (!item.str || !ANCHOR.test(item.str)) continue;
+        if (!item.str || !item.str.trim()) continue;
         const [x0, y0] = base.convertToViewportPoint(item.transform[4], item.transform[5]);
         const h = Math.hypot(item.transform[2], item.transform[3]) || item.height || 10;
-        out.push({ page: Number(page.pageNumber), left: x0 / base.width, right: (x0 + item.width) / base.width, baseline: y0 / base.height, lineH: h / base.height });
+        out.push({ page: Number(page.pageNumber), str: item.str, left: x0 / base.width, right: (x0 + item.width) / base.width, baseline: y0 / base.height, lineH: h / base.height });
       }
     }
-    out.sort((a, b) => a.page - b.page || Math.round(a.baseline * 50) - Math.round(b.baseline * 50) || a.left - b.left);
-    this.anchors = out;
+    this.textItems = out;
     return out;
   }
 
-  /** Suggests a box for every signer without one, following the "Signature" mentions in document order. */
+  /**
+   * Suggests a box for every signer without one: a signer named next to a "Signature" label gets that
+   * label, the others take the last labels of the document (closing signatures block).
+   */
   async suggest() {
-    const anchors = await this.findAnchors();
-    const used = new Set(Object.values(this.fields).map((f) => `${f.page}:${f.x.toFixed(2)}:${f.y.toFixed(2)}`));
-    let i = 0;
+    const items = await this.readText();
+    const pending = this.signers.filter((s) => !this.fields[s.key]);
+    // Anchors already covered by a placed box stay out of the pool.
+    const taken = Object.values(this.fields).map((f) => ({ page: f.page, left: f.x, right: f.x + f.w, baseline: f.y }));
+    const { assignment, anchors } = assignAnchors(items, pending, taken);
+    this.anchors = anchors;
     let changed = false;
-    for (const s of this.signers) {
-      if (this.fields[s.key]) continue;
-      while (i < anchors.length) {
-        const a = anchors[i++];
-        const box = this.boxFromAnchor(a);
-        const sig = `${box.page}:${box.x.toFixed(2)}:${box.y.toFixed(2)}`;
-        if (used.has(sig)) continue;
-        used.add(sig);
-        this.fields[s.key] = box;
-        changed = true;
-        break;
-      }
+    for (const s of pending) {
+      const a = assignment.get(s.key);
+      if (!a) continue;
+      this.fields[s.key] = this.boxFromAnchor(a);
+      changed = true;
     }
     this.render();
     if (changed) this.onChange({});
@@ -139,10 +140,8 @@ export class FieldPlacer {
   boxFromAnchor(a) {
     const h = DEFAULT_H;
     // Labels sharing the baseline mean a column layout: the signature goes under its label, within the column.
-    const sameLine = (this.anchors || []).filter((o) => o !== a && o.page === a.page && Math.abs(o.baseline - a.baseline) < 0.01);
-    if (sameLine.length) {
-      const next = sameLine.map((o) => o.left).filter((l) => l > a.left).sort((p, q) => p - q)[0];
-      const colW = (next ?? 0.96) - a.left - 0.02;
+    if (a.columns) {
+      const colW = a.colRight - a.left;
       return this.fit({ page: a.page, x: a.left, y: a.baseline + 0.004, w: Math.min(DEFAULT_W, colW), h });
     }
     const w = DEFAULT_W;
